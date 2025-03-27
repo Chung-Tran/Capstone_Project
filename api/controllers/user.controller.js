@@ -3,7 +3,7 @@ const User = require('../models/user.model');
 
 const registerUser = asyncHandler(async (req, res) => {
     const { fullname, email, password } = req.body;
-
+    console.log(fullname)
     const userExists = await User.findOne({ email });
     if (userExists) {
         res.status(400);

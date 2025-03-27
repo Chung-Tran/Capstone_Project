@@ -93,7 +93,7 @@ const Header = () => {
                             <Search size={22} />
                         </button>
 
-                        <Link to="/account" className="text-gray-700 hover:text-amber-600 transition-colors" aria-label="My Account">
+                        <Link to="/login" className="text-gray-700 hover:text-amber-600 transition-colors" aria-label="My Account">
                             <User size={22} />
                         </Link>
 
