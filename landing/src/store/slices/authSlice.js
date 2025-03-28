@@ -39,6 +39,12 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.userRole = null;
             state.error = null;
+            try {
+                localStorage.removeItem('user');
+                localStorage.removeItem('roleSession');
+            } catch (error) {
+                console.error('Error setting localStorage:', error);
+            }
         },
     },
 });

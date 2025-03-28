@@ -6,10 +6,16 @@ import Layout from './layouts/Layout';
 import SellerLayout from './layouts/SellerLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import Home from './pages/Home';
 import Products from './pages/Products';
 import Checkout from './pages/Checkout';
 import { useSelector } from 'react-redux';
+import Dashboard from './pages/seller/Dashboard';
+import ShopManagement from './pages/seller/ShopManagement';
+import Orders from './pages/seller/Orders';
+import Reviews from './pages/seller/Reviews';
+import Messages from './pages/seller/Messages';
+import Analytics from './pages/seller/Analytics';
+import HomePage from './pages/HomePage';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -48,16 +54,6 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Public Route với kiểm tra seller
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, userRole } = useSelector((state) => state.auth);
-
-  if (isAuthenticated && userRole === 'seller') {
-    return <Navigate to="/seller/dashboard" />;
-  }
-
-  return children;
-};
 
 const AppRoutes = () => {
   return (
@@ -70,9 +66,13 @@ const AppRoutes = () => {
       <Route path="/seller/*" element={
         <SellerRoute>
           <Routes>
-            <Route path="dashboard" element={<div>Dashboard Content</div>} />
-            <Route path="products" element={<div>Products Management</div>} />
-            <Route path="orders" element={<div>Orders Management</div>} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="shop" element={<ShopManagement />} />
+            <Route path="products" element={<Products />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="reviews" element={<Reviews />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="analytics" element={<Analytics />} />
           </Routes>
         </SellerRoute>
       } />
@@ -80,13 +80,12 @@ const AppRoutes = () => {
       {/* Public/Customer Routes với Layout cũ */}
       <Route path="/*" element={
         <CheckSellerAccess>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<Products />} />
-              {/* Thêm các routes khác cho customer/public */}
-            </Routes>
-          </Layout>
+            </Route>
+          </Routes>
         </CheckSellerAccess>
       } />
 
