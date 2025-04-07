@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { PromotionController } = require('../controllers/promotion.controller');
-const { protect, adminOnly } = require('../middlewares/auth');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-router.post('/', protect, adminOnly, PromotionController.createPromotion);
+router.post('/', authMiddleware, PromotionController.createPromotion);
 router.get('/', PromotionController.getPromotions);
-router.put('/:id', protect, adminOnly, PromotionController.updatePromotion);
-router.delete('/:id', protect, adminOnly, PromotionController.deletePromotion);
+router.put('/:id', authMiddleware, PromotionController.updatePromotion);
+router.delete('/:id', authMiddleware, PromotionController.deletePromotion);
 
 module.exports = router; 

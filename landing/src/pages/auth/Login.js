@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { mockLogin } from '../../store/slices/authSlice';
-
+import authService from '../../services/auth.service';
+import { showToast } from '../../utils/toast';
+import { loginSuccess } from '../../store/slices/authSlice';
 const Login = () => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const { isAuthenticated, userRole, error, loading } = useSelector((state) => state.auth);
   const from = location.state?.from || '/';
+
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -38,22 +41,32 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      dispatch(mockLogin(formData.username, formData.password));
+      try {
+        const response = await authService.customer_login(formData);
+        if (response.isSuccess) {
+          dispatch(loginSuccess(response.data));
+          showToast.success('Đăng nhập thành công!');
+          navigate(from);
+        }
+      } catch (error) {
+        console.log(error);
+        showToast.error(error.response?.message || 'Đăng nhập thất bại. Vui lòng thử lại');
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto max-w-4xl">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Đăng nhập
         </h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-8 sm:mx-auto max-w-4xl">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>

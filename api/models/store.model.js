@@ -15,9 +15,10 @@ const storeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    business_field: String,
+    business_field: Array,
     store_description: String,
     store_logo: String,
+    store_banner: String,
     tax_code: String,
     contact_email: String,
     contact_phone: String,

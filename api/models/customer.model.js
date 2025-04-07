@@ -16,7 +16,7 @@ const customerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    full_name: String,
+    fullname: String,
     phone: String,
     address: String,
     role: {
@@ -49,5 +49,9 @@ customerSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
+
+customerSchema.methods.comparePassword = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
 
 module.exports = mongoose.model('Customer', customerSchema); 

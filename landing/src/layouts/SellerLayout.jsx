@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import {
     HomeIcon,
@@ -12,7 +12,8 @@ import {
     ChartBarIcon,
     BellIcon,
 } from '@heroicons/react/24/outline';
-
+import authService from '../services/auth.service';
+import { saveShopData } from '../store/slices/shopSlice';
 const SidebarLink = ({ to, icon: Icon, children, active }) => (
     <Link
         to={to}
@@ -29,22 +30,34 @@ const SellerLayout = ({ children }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [notifications, setNotifications] = useState(0); // Mock notifications
-
+    const loading = useSelector((state) => state.shop.loading);
     const handleLogout = () => {
         dispatch(logout());
-        navigate('/login');
+        navigate('/');
     };
 
     const navigationItems = [
         { path: '/seller/dashboard', icon: HomeIcon, label: 'Tổng quan' },
-        { path: '/seller/shop', icon: CogIcon, label: 'Quản lý Shop' },
+        { path: '/seller/shop', icon: CogIcon, label: 'Quản lý cửa hàng' },
         { path: '/seller/products', icon: ShoppingBagIcon, label: 'Quản lý Sản phẩm' },
         { path: '/seller/orders', icon: ClipboardDocumentListIcon, label: 'Quản lý Đơn hàng' },
         { path: '/seller/reviews', icon: StarIcon, label: 'Đánh giá & Phản hồi' },
         { path: '/seller/messages', icon: ChatBubbleLeftRightIcon, label: 'Tin nhắn' },
-        { path: '/seller/analytics', icon: ChartBarIcon, label: 'Thống kê & Báo cáo' },
     ];
-
+    useEffect(() => {
+        const fetchShopInfo = async () => {
+            try {
+                dispatch({ type: 'shop/setLoading', payload: true });
+                const response = await authService.get_shop_info();
+                dispatch(saveShopData(response.data));
+            } catch (error) {
+                console.error('Failed to fetch shop info:', error);
+            } finally {
+                dispatch({ type: 'shop/setLoading', payload: false });
+            }
+        };
+        fetchShopInfo();
+    }, []);
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -89,8 +102,21 @@ const SellerLayout = ({ children }) => {
                 </aside>
 
                 {/* Main Content */}
-                <main className="ml-64 flex-1 p-8">
+                <main className="ml-64 flex-1 p-8 relative">
                     {children}
+
+                    {/* Loading Overlay */}
+                    {loading && (
+                        <div className="absolute inset-0 bg-white bg-opacity-70 z-10">
+                            <div className="w-full h-full flex flex-col items-center justify-center">
+                                <svg className="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="text-gray-600 font-medium">Vui lòng đợi...</span>
+                            </div>
+                        </div>
+                    )}
                 </main>
             </div>
         </div>

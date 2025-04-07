@@ -1,26 +1,37 @@
-const jwt = require('jsonwebtoken');
+const asyncHandler = require('express-async-handler');
+const { verifyToken } = require('../services/jwtService');
+const Customer = require('../models/customer.model');
 
-const authMiddleware = async (req, res, next) => {
-    try {
-        // Lấy token từ header
-        const token = req.headers.authorization?.split(' ')[1];
+const authMiddleware = asyncHandler(async (req, res, next) => {
+    let token;
 
-        if (!token) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            // Get token from header
+            token = req.headers.authorization.split(' ')[1];
+
+            // Verify token
+            const decoded = verifyToken(token);
+
+            // Get user from token
+            const user = await Customer.findById(decoded.id).select('-password');
+            if (!user) {
+                res.status(401);
+                throw new Error('User not found');
+            }
+
+            req.user = user;
+            next();
+        } catch (error) {
             res.status(401);
-            throw new Error('Không tìm thấy token xác thực');
+            throw new Error('Not authorized');
         }
-
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Gán thông tin user vào request để sử dụng ở các middleware tiếp theo
-        req.user = decoded;
-
-        next();
-    } catch (error) {
-        res.status(401);
-        next(error);
     }
-};
+
+    if (!token) {
+        res.status(401);
+        throw new Error('Not authorized, no token');
+    }
+});
 
 module.exports = authMiddleware; 

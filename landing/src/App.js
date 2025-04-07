@@ -16,10 +16,18 @@ import Reviews from './pages/seller/Reviews';
 import Messages from './pages/seller/Messages';
 import Analytics from './pages/seller/Analytics';
 import HomePage from './pages/HomePage';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import AuthProvider from './providers/auth.provider';
+import ForYouPage from './pages/ForyouPage';
+import PromotionsPage from './pages/PromotionsPage';
+import NewProductsPage from './pages/NewProductsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import SearchProductPage from './pages/SearchProductPage';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
-  const roleSession = localStorage.getItem('roleSession');
+  const roleSession = localStorage.getItem('role');
 
   if (roleSession === 'seller') {
     return <Navigate to="/seller/dashboard" replace />;
@@ -30,7 +38,7 @@ const CheckSellerAccess = ({ children }) => {
 
 // Bảo vệ routes của seller
 const SellerRoute = ({ children }) => {
-  const roleSession = localStorage.getItem('roleSession');
+  const roleSession = localStorage.getItem('role');
 
   if (roleSession !== 'seller') {
     return <Navigate to="/login" replace />;
@@ -83,7 +91,12 @@ const AppRoutes = () => {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/products" element={<Products />} />
+              <Route path="/san-pham" element={<Products />} />
+              <Route path="/danh-cho-ban" element={<ForYouPage />} />
+              <Route path="/khuyen-mai" element={<PromotionsPage />} />
+              <Route path="/san-pham-moi" element={<NewProductsPage />} />
+              <Route path="/san-pham/:slug" element={<ProductDetailPage />} />
+              <Route path="/tim-kiem-san-pham/:slug" element={<SearchProductPage />} />
             </Route>
           </Routes>
         </CheckSellerAccess>
@@ -105,9 +118,12 @@ const AppRoutes = () => {
 function App() {
   return (
     <Provider store={store}>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+          <ToastContainer />
+        </Router>
+      </AuthProvider>
     </Provider>
   );
 }

@@ -9,7 +9,7 @@ import TrustFeatures from '../components/TrustFeatures';
 
 function HomePage() {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col ">
             <HeroSection />
             <CategoriesSection />
             <FeaturedProducts />
