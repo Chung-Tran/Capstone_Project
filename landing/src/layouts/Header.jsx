@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Search, User, Bell, Heart, ChevronDown, Menu, X } from 'lucide-react';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 const Header = () => {
+    const dispatch = useDispatch();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState(3);
-    const [wishlistCount, setWishlistCount] = useState(5);
-    const [cartCount, setCartCount] = useState(2);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+    const { isAuthenticated, userRole, userInfo, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
     // Refs for closing dropdowns when clicking outside
     const notificationRef = useRef(null);
     const userMenuRef = useRef(null);
     const categoryRef = useRef(null);
-
+    const navigate = useNavigate();
     // Handle scroll event to change header styling
     useEffect(() => {
         const handleScroll = () => {
@@ -64,6 +63,16 @@ const Header = () => {
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
             console.log('Search performed');
+        }
+    };
+    const handleLogout = () => {
+        dispatch(logout());
+    };
+    const handleUserIconClick = () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+        } else {
+            setIsUserMenuOpen(!isUserMenuOpen);
         }
     };
 
@@ -146,75 +155,81 @@ const Header = () => {
                         {/* Action Icons */}
                         <div className="flex items-center space-x-4">
                             {/* Notifications */}
-                            <div className="relative hidden lg:block" ref={notificationRef}>
-                                <button
-                                    className="p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full"
-                                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                                >
-                                    <Bell size={20} />
-                                    {notifications > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                                            {notifications}
-                                        </span>
-                                    )}
-                                </button>
+                            {isAuthenticated && (
+                                <div className="relative hidden lg:block" ref={notificationRef}>
+                                    <button
+                                        className="p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full"
+                                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                    >
+                                        <Bell size={20} />
+                                        {notifications > 0 && (
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                                                {notifications}
+                                            </span>
+                                        )}
+                                    </button>
 
-                                {isNotificationOpen && (
-                                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2">
-                                        <div className="px-4 py-2 border-b border-gray-100">
-                                            <h3 className="font-medium">Thông báo</h3>
-                                        </div>
-                                        {notificationsList.map((notification) => (
-                                            <div key={notification.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
-                                                <p className="text-sm text-gray-800">{notification.text}</p>
-                                                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                                    {isNotificationOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2">
+                                            <div className="px-4 py-2 border-b border-gray-100">
+                                                <h3 className="font-medium">Thông báo</h3>
                                             </div>
-                                        ))}
-                                        <div className="px-4 py-2 border-t border-gray-100">
-                                            <Link to="/notifications" className="text-sm text-blue-600 hover:text-blue-700">
-                                                Xem tất cả thông báo
-                                            </Link>
+                                            {notificationsList.map((notification) => (
+                                                <div key={notification.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                                                    <p className="text-sm text-gray-800">{notification.text}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                                                </div>
+                                            ))}
+                                            <div className="px-4 py-2 border-t border-gray-100">
+                                                <Link to="/notifications" className="text-sm text-blue-600 hover:text-blue-700">
+                                                    Xem tất cả thông báo
+                                                </Link>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Wishlist */}
-                            <Link to="/wishlist" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
-                                <Heart size={20} />
-                                {wishlistCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                                        {wishlistCount}
-                                    </span>
+                            {
+                                isAuthenticated && (
+                                    <Link to="/wishlist" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
+                                        <Heart size={20} />
+                                        {wishlistCount >= 0 && (
+                                            <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                                                {wishlistCount}
+                                            </span>
+                                        )}
+                                    </Link>
                                 )}
-                            </Link>
-
                             {/* Cart */}
-                            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
-                                <ShoppingCart size={20} />
-                                {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                                        {cartCount}
-                                    </span>
-                                )}
-                            </Link>
+                            {isAuthenticated && (
+                                <Link to="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
+                                    <ShoppingCart size={20} />
+                                    {cartCount >= 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </Link>
+                            )}
 
                             {/* User Menu */}
                             <div className="relative" ref={userMenuRef}>
                                 <button
                                     className="p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full"
-                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                    onClick={handleUserIconClick}
                                 >
                                     <User size={20} />
                                 </button>
 
                                 {isUserMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2">
-                                        {isLoggedIn ? (
+                                        {isAuthenticated ? (
                                             <>
                                                 <div className="px-4 py-2 border-b border-gray-100">
                                                     <p className="text-sm font-medium">Xin chào!</p>
-                                                    <p className="text-xs text-gray-500">user@example.com</p>
+                                                    <p className="text-xs text-gray-500">{userInfo?.fullname}</p>
                                                 </div>
                                                 <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                                                     Tài khoản của tôi
@@ -224,21 +239,12 @@ const Header = () => {
                                                 </Link>
                                                 <button
                                                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                                    onClick={() => {/* Xử lý đăng xuất */ }}
+                                                    onClick={handleLogout}
                                                 >
                                                     Đăng xuất
                                                 </button>
                                             </>
-                                        ) : (
-                                            <>
-                                                <Link to="/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                                                    Đăng nhập
-                                                </Link>
-                                                <Link to="/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                                                    Đăng ký
-                                                </Link>
-                                            </>
-                                        )}
+                                        ) : null}
                                     </div>
                                 )}
                             </div>
@@ -319,7 +325,7 @@ const Header = () => {
 
                             {/* Mobile User Section */}
                             <div className="mt-6 border-t pt-4">
-                                {isLoggedIn ? (
+                                {isAuthenticated ? (
                                     <>
                                         <div className="mb-4">
                                             <p className="font-medium">Xin chào!</p>
@@ -348,24 +354,7 @@ const Header = () => {
                                             </button>
                                         </div>
                                     </>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <Link
-                                            to="/login"
-                                            className="block text-base text-gray-700 hover:text-blue-600"
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                        >
-                                            Đăng nhập
-                                        </Link>
-                                        <Link
-                                            to="/register"
-                                            className="block text-base text-gray-700 hover:text-blue-600"
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                        >
-                                            Đăng ký
-                                        </Link>
-                                    </div>
-                                )}
+                                ) : null}
                             </div>
                         </div>
                     </div>
