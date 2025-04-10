@@ -13,7 +13,7 @@ import {
     BellIcon,
 } from '@heroicons/react/24/outline';
 import authService from '../services/auth.service';
-import { saveShopData } from '../store/slices/shopSlice';
+import { saveProductData, saveShopData } from '../store/slices/shopSlice';
 const SidebarLink = ({ to, icon: Icon, children, active }) => (
     <Link
         to={to}
@@ -49,7 +49,8 @@ const SellerLayout = ({ children }) => {
             try {
                 dispatch({ type: 'shop/setLoading', payload: true });
                 const response = await authService.get_shop_info();
-                dispatch(saveShopData(response.data));
+                dispatch(saveShopData(response.data.shopInfo));
+                dispatch(saveProductData(response.data.productInfo));
             } catch (error) {
                 console.error('Failed to fetch shop info:', error);
             } finally {
