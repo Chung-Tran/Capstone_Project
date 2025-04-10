@@ -12,11 +12,16 @@ const customerSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    username: {
+        type: String,
+        required: true,
+        unique: true
+    },
     password: {
         type: String,
         required: true
     },
-    fullname: String,
+    fullName: String,
     phone: String,
     address: String,
     role: {
@@ -25,7 +30,7 @@ const customerSchema = new mongoose.Schema({
         default: 'customer'
     },
     avatar: String,
-    birth_date: Date,
+    birthDate: Date,
     gender: {
         type: String,
         enum: ['male', 'female', 'other']

@@ -54,13 +54,13 @@ const authService = {
             throw handleError(error);
         }
     },
-        get_shop_info: async () => {
-            try {
-                const response = await axiosClient.get('/customers/shop-info');
-                return handleResponse(response);
-            } catch (error) {
-                throw handleError(error);
-            }
+    get_shop_info: async () => {
+        try {
+            const response = await axiosClient.get('/customers/shop-info');
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
     },
     get_account_info: async () => {
         try {
@@ -69,7 +69,19 @@ const authService = {
         } catch (error) {
             throw handleError(error);
         }
-    }   
+    },
+    update_customer_info: async (_id, customerInfo) => {
+        try {
+            const response = await axiosClient.put(`/customers/${_id}`, customerInfo, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
+    }
 }
 
 export default authService;

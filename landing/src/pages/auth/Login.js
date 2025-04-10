@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import authService from '../../services/auth.service';
 import { showToast } from '../../utils/toast';
-import { loginSuccess } from '../../store/slices/authSlice';
+import { loginSuccess, restoreSession } from '../../store/slices/authSlice';
 const Login = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -48,6 +48,7 @@ const Login = () => {
         const response = await authService.customer_login(formData);
         if (response.isSuccess) {
           dispatch(loginSuccess(response.data));
+          dispatch(restoreSession());
           showToast.success('Đăng nhập thành công!');
           navigate(from);
         }

@@ -34,7 +34,6 @@ const initialState = {
     user: null,
     isAuthenticated: false,
     userRole: null, // 'customer' hoặc 'seller'
-    userInfo: null,
     loading: false,
     error: null,
     notifications: [],
@@ -91,7 +90,7 @@ const authSlice = createSlice({
             .addCase(restoreSession.fulfilled, (state, action) => {
                 state.isAuthenticated = true;
                 state.userRole = action.payload.role;
-                state.user = action.payload.decodedToken;
+                state.user = action.payload.accountInfo.customer;
                 state.cartCount = action.payload.accountInfo.cartCount;
                 state.wishlistCount = action.payload.accountInfo.wishlistCount;
                 state.loading = false;

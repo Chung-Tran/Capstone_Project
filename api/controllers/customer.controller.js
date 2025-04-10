@@ -33,7 +33,7 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
 });
 
 const registerCustomer = asyncHandler(async (req, res) => {
-    const { email, password, full_name, role, otp, store_name, business_field, tax_code, store_description, contact_email, contact_phone, address } = req.body;
+    const { username, email, password, fullName, phone, birthDate, role, gender, otp, store_name, business_field, tax_code, store_description, contact_email, contact_phone, address } = req.body;
 
     // Verify OTP
     // const isOTPValid = await verifyOTP(email, otp);
@@ -53,10 +53,15 @@ const registerCustomer = asyncHandler(async (req, res) => {
 
     // Create customer
     const customer = await Customer.create({
+        username,
         customer_code,
         email,
         password,
-        full_name,
+        fullName,
+        phone,
+        address,
+        birthDate,
+        gender,
         role
     });
 
@@ -196,25 +201,29 @@ const getCustomerProfile = asyncHandler(async (req, res) => {
 
 const updateCustomerProfile = asyncHandler(async (req, res) => {
     const customer = await Customer.findById(req.params.id);
-
+    let avatarUrl = customer.avatar;
+    if (req.files && req.files.avatar) {
+        avatarUrl = await uploadImage(req.files.avatar[0]);
+    }
     if (customer) {
-        customer.full_name = req.body.full_name || customer.full_name;
-        customer.email = req.body.email || customer.email;
+        customer.fullName = req.body.fullName || customer.fullName;
+        // customer.email = req.body.email || customer.email;
         customer.phone = req.body.phone || customer.phone;
         customer.address = req.body.address || customer.address;
-
-        if (req.body.password) {
-            customer.password = req.body.password;
-        }
-
+        customer.birthDate = req.body.birthDate || customer.birthDate;
+        customer.gender = req.body.gender || customer.gender;
+        customer.avatar = avatarUrl;
         const updatedCustomer = await customer.save();
 
         res.json(formatResponse(true, {
             _id: updatedCustomer._id,
-            full_name: updatedCustomer.full_name,
+            fullName: updatedCustomer.fullName,
             email: updatedCustomer.email,
             phone: updatedCustomer.phone,
-            address: updatedCustomer.address
+            address: updatedCustomer.address,
+            birthDate: updatedCustomer.birthDate,
+            gender: updatedCustomer.gender,
+            avatar: updatedCustomer.avatar
         }, 'Profile updated successfully'));
     } else {
         res.status(404);

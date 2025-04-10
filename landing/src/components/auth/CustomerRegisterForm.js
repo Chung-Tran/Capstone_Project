@@ -70,6 +70,8 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
             setIsLoading(true);
             const registrationData = {
                 fullName: formData.fullName,
+                username: formData.username,
+                address: formData.address,
                 email: formData.email,
                 password: formData.password,
                 phone: formData.phone,
@@ -129,7 +131,30 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
     };
 
     return (
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className=" grid grid-cols-2 gap-4 items-center" onSubmit={handleSubmit}>
+            <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                    Tên đăng nhập <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1">
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        autoComplete="name"
+                        required
+                        value={formData.username || ''}
+                        onChange={onInputChange}
+                        className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 
+                        focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm
+                        ${errors.username ? 'border-red-500' : 'border-gray-300'}`}
+                        placeholder="Nhập tên đăng nhập"
+                    />
+                    {errors.username && (
+                        <p className="mt-2 text-sm text-red-600">{errors.username}</p>
+                    )}
+                </div>
+            </div>
             <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
                     Họ tên <span className="text-red-500">*</span>
@@ -196,6 +221,30 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                     />
                     {errors.phone && (
                         <p className="mt-2 text-sm text-red-600">{errors.phone}</p>
+                    )}
+                </div>
+            </div>
+
+            <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                    Địa chỉ <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1">
+                    <input
+                        id="address"
+                        name="address"
+                        type="text"
+                        autoComplete="name"
+                        required
+                        value={formData.address || ''}
+                        onChange={onInputChange}
+                        className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 
+                        focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm
+                        ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
+                        placeholder="Nhập họ tên"
+                    />
+                    {errors.address && (
+                        <p className="mt-2 text-sm text-red-600">{errors.address}</p>
                     )}
                 </div>
             </div>
@@ -340,7 +389,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                         <p className="mt-2 text-sm text-red-600">{errors.password}</p>
                     )}
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Mật khẩu phải có ít nhất 6 ký tự</p>
             </div>
 
             <div>
@@ -367,7 +415,7 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                 </div>
             </div>
 
-            <div className="flex items-center">
+            <div className="col-span-2 flex items-center">
                 <input
                     id="acceptTerms"
                     name="acceptTerms"
@@ -390,11 +438,11 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                 <p className="mt-1 text-sm text-red-600">{errors.acceptTerms}</p>
             )}
 
-            <div>
+            <div className='col-span-2'>
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 "
                 >
                     {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
                 </button>

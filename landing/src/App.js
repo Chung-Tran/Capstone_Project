@@ -24,6 +24,15 @@ import PromotionsPage from './pages/PromotionsPage';
 import NewProductsPage from './pages/NewProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import SearchProductPage from './pages/SearchProductPage';
+import AccountLayout from './layouts/AccountLayout';
+import AccountInfo from './pages/account/AccountInfo';
+import OrderHistory from './pages/account/OrderHistory';
+import ChangePassword from './pages/account/ChangePassword';
+import Notifications from './pages/account/Notifications';
+import TransactionHistory from './pages/account/TransactionHistory';
+import ShoppingCart from './pages/CartPage';
+import Wishlist from './pages/Wishlist';
+import StorePage from './pages/StorePage';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -46,6 +55,11 @@ const SellerRoute = ({ children }) => {
 
   return <SellerLayout>{children}</SellerLayout>;
 };
+const AccountRoute = ({ children }) => {
+
+  return <AccountLayout>{children}</AccountLayout>;
+};
+
 
 // Protected Route cho các trang yêu cầu đăng nhập (như checkout)
 const ProtectedRoute = ({ children }) => {
@@ -97,6 +111,18 @@ const AppRoutes = () => {
               <Route path="/san-pham-moi" element={<NewProductsPage />} />
               <Route path="/san-pham/:slug" element={<ProductDetailPage />} />
               <Route path="/tim-kiem-san-pham/:slug" element={<SearchProductPage />} />
+              <Route path="/gio-hang" element={<ShoppingCart />} />
+              <Route path="/san-pham-yeu-thich" element={<Wishlist />} />
+              <Route path="/store/:id" element={<StorePage />} />
+
+
+              <Route path="tai-khoan" element={<AccountLayout />}>
+                <Route path="thong-tin-tai-khoan" element={<AccountInfo />} />
+                <Route path="lich-su-don-hang" element={<OrderHistory />} />
+                <Route path="doi-mat-khau" element={<ChangePassword />} />
+                <Route path="thong-bao" element={<Notifications />} />
+                <Route path="lich-su-giao-dich" element={<TransactionHistory />} />
+              </Route>
             </Route>
           </Routes>
         </CheckSellerAccess>
