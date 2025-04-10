@@ -11,7 +11,7 @@ const Header = () => {
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const { isAuthenticated, userRole, userInfo, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
+    const { isAuthenticated, userRole, user, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
     // Refs for closing dropdowns when clicking outside
     const notificationRef = useRef(null);
     const userMenuRef = useRef(null);
@@ -193,7 +193,7 @@ const Header = () => {
                             {/* Wishlist */}
                             {
                                 isAuthenticated && (
-                                    <Link to="/wishlist" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
+                                    <Link to="/san-pham-yeu-thich" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
                                         <Heart size={20} />
                                         {wishlistCount >= 0 && (
                                             <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
@@ -204,7 +204,7 @@ const Header = () => {
                                 )}
                             {/* Cart */}
                             {isAuthenticated && (
-                                <Link to="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
+                                <Link to="/gio-hang" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
                                     <ShoppingCart size={20} />
                                     {cartCount >= 0 && (
                                         <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
@@ -217,10 +217,17 @@ const Header = () => {
                             {/* User Menu */}
                             <div className="relative" ref={userMenuRef}>
                                 <button
-                                    className="p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full"
+                                    className="p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full flex items-center justify-center"
                                     onClick={handleUserIconClick}
                                 >
-                                    <User size={20} />
+                                    {
+                                        isAuthenticated && !!user?.avatar ? (
+                                            <img src={user?.avatar} alt="User Avatar" className="w-6 h-6 rounded-full" />
+                                        ) : (
+                                            <User size={20} />
+                                        )
+                                    }
+                                    <span className="text-sm font-medium ml-1">{user?.username}</span>
                                 </button>
 
                                 {isUserMenuOpen && (
@@ -229,12 +236,12 @@ const Header = () => {
                                             <>
                                                 <div className="px-4 py-2 border-b border-gray-100">
                                                     <p className="text-sm font-medium">Xin chào!</p>
-                                                    <p className="text-xs text-gray-500">{userInfo?.fullname}</p>
+                                                    <p className="text-xs text-gray-500">{user?.fullName}</p>
                                                 </div>
-                                                <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                                                <Link to="/tai-khoan/thong-tin-tai-khoan" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                                                     Tài khoản của tôi
                                                 </Link>
-                                                <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                                                <Link to="/tai-khoan/lich-su-don-hang" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                                                     Đơn hàng của tôi
                                                 </Link>
                                                 <button

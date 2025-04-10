@@ -120,7 +120,7 @@ const ProductCardItem = ({ product }) => {
 
                 {/* Action buttons */}
                 <div className="flex gap-2">
-                    <button className="flex-1 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center text-black rounded-lg border border-gray-300 hover:bg-gray-100">
+                    <button className="flex-1 text-black py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center text-black rounded-lg border border-gray-300 hover:bg-gray-100">
                         <ShoppingCart size={16} className="mr-1" />
                         Thêm vào giỏ
                     </button>

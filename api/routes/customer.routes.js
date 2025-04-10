@@ -22,6 +22,6 @@ router.get('/shop-info', authMiddleware, CustomerController.getShopInfo);
 router.get('/account-info', authMiddleware, CustomerController.getAccountInfo);
 
 
-router.put('/profile/:id', authMiddleware, CustomerController.updateCustomerProfile);
 router.put('/shop', authMiddleware, multiUpload, CustomerController.updateShopInfo);
+router.put('/:id', authMiddleware, multiUpload, CustomerController.updateCustomerProfile);
 module.exports = router; 
