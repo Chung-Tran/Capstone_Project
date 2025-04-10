@@ -1,23 +1,10 @@
-const responseFormat = (req, res, next) => {
-    res.success = (statusCode, message, data = null) => {
-        res.status(statusCode).json({
-            success: true,
-            status: statusCode,
-            message,
-            data,
-        });
+const formatResponse = (isSuccess = true, data = null, message = 'Success', metadata = {}) => {
+    return {
+        isSuccess,
+        message,
+        data,
+        metadata
     };
-
-    res.error = (statusCode, message, error = null) => {
-        res.status(statusCode).json({
-            success: false,
-            status: statusCode,
-            message,
-            error,
-        });
-    };
-
-    next();
 };
 
-module.exports = responseFormat;
+module.exports = formatResponse;

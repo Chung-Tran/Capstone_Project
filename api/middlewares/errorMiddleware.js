@@ -37,6 +37,7 @@ function errorHandler(err, req, res, next) {
   }
 
   // Xử lý lỗi không xác định hoặc lỗi khác
+  console.log(err);
   res.status(err.status || 500).json(formatResponse(
     false,
     null,
