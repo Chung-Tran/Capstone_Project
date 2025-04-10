@@ -6,7 +6,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
     const [errors, setErrors] = useState({});
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isOtpVerified, setIsOtpVerified] = useState(false);
 
     const validate = () => {
         const newErrors = {};
@@ -60,11 +59,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
-        //temporary
-        if (!showOtpInput) {
-            showToast.error('Vui lòng xác thực OTP trước khi đăng ký');
-            return;
-        }
 
         try {
             setIsLoading(true);
@@ -84,7 +78,7 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
             showToast.success('Đăng ký thành công!');
             onSubmit(response);
         } catch (error) {
-            showToast.error(error.response?.message || 'Đăng ký thất bại. Vui lòng thử lại');
+            showToast.error(error?.message || 'Đăng ký thất bại. Vui lòng thử lại');
         } finally {
             setIsLoading(false);
         }
@@ -119,7 +113,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
         try {
             setIsLoading(true);
             await authService.verify_otp(formData.email, formData.otp);
-            setIsOtpVerified(true);
             setErrors({ ...errors, otp: '' });
             showToast.success('Xác thực OTP thành công');
         } catch (error) {
@@ -352,14 +345,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                             ${errors.otp ? 'border-red-500' : 'border-gray-300'}`}
                             placeholder="Nhập mã OTP được gửi đến email của bạn"
                         />
-                        <button
-                            type="button"
-                            onClick={handleVerifyOtp}
-                            disabled={isLoading || isOtpVerified}
-                            className="inline-flex items-center px-3 whitespace-nowrap py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700"
-                        >
-                            {isLoading ? 'Đang xác thực...' : isOtpVerified ? 'Đã xác thực' : 'Xác thực OTP'}
-                        </button>
                     </div>
                     {errors.otp && (
                         <p className="mt-2 text-sm text-red-600">{errors.otp}</p>
@@ -441,10 +426,9 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
             <div className='col-span-2'>
                 <button
                     type="submit"
-                    disabled={isLoading}
                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 "
                 >
-                    {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
+                    Đăng ký
                 </button>
             </div>
         </form>

@@ -6,7 +6,6 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
     const [errors, setErrors] = useState({});
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isOtpVerified, setIsOtpVerified] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     // Business categories options
@@ -90,6 +89,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
                 username: formData.username,
                 email: formData.email,
                 password: formData.password,
+                otp: formData.otp,
 
                 // Store data
                 store_name: formData.shopName,
@@ -133,26 +133,6 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
         } catch (error) {
             setErrors({ ...errors, email: error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại' });
             showToast.error(error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (!formData.otp?.trim()) {
-            setErrors({ ...errors, otp: 'Vui lòng nhập mã OTP' });
-            return;
-        }
-
-        try {
-            setIsLoading(true);
-            await authService.verify_otp(formData.email, formData.otp);
-            setIsOtpVerified(true);
-            setErrors({ ...errors, otp: '' });
-            showToast.success('Xác thực OTP thành công');
-        } catch (error) {
-            setErrors({ ...errors, otp: 'Mã OTP không đúng hoặc đã hết hạn' });
-            showToast.error('Mã OTP không đúng hoặc đã hết hạn');
         } finally {
             setIsLoading(false);
         }
@@ -312,14 +292,6 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
                                     ${errors.otp ? 'border-red-500' : 'border-gray-300'}`}
                                     placeholder="Nhập mã OTP được gửi đến email của bạn"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={handleVerifyOtp}
-                                    disabled={isLoading || isOtpVerified}
-                                    className="inline-flex items-center px-3 whitespace-nowrap py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700"
-                                >
-                                    {isLoading ? 'Đang xác thực...' : isOtpVerified ? 'Đã xác thực' : 'Xác thực OTP'}
-                                </button>
                             </div>
                             {errors.otp && (
                                 <p className="mt-2 text-sm text-red-600">{errors.otp}</p>

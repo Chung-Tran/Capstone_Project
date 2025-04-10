@@ -5,7 +5,7 @@ const Store = require('../models/store.model');
 const CustomerItems = require('../models/customerItems.model');
 const Notification = require('../models/notification.model');
 const formatResponse = require('../middlewares/responseFormat');
-// const { createOTP, verifyOTP } = require('../services/otpService');
+const { createOTP, verifyOTP } = require('../services/otpService');
 const { sendOTPEmail } = require('../services/emailService');
 const { generateToken } = require('../services/jwtService');
 const { uploadImage } = require('../services/uploadService');
@@ -18,35 +18,36 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
     const customerExists = await Customer.findOne({ email });
     if (customerExists) {
         res.status(400);
-        throw new Error('Email already registered');
+        throw new Error('Email đã tồn tại');
     }
 
-    // const otp = await createOTP(email);
-    const otp = 123456
+    // Generate and save OTP
+    const otp = await createOTP(email, 'email');
 
+    // Send OTP via email
     const emailSent = await sendOTPEmail(email, otp);
     if (!emailSent) {
         res.status(500);
-        throw new Error('Failed to send OTP email');
+        throw new Error('Không thể gửi OTP');
     }
 
-    res.json(formatResponse(true, null, 'OTP sent successfully'));
+    res.json(formatResponse(true, null, 'OTP đã được gửi thành công'));
 });
 
 const registerCustomer = asyncHandler(async (req, res) => {
     const { username, email, password, fullName, phone, birthDate, role, gender, otp, store_name, business_field, tax_code, store_description, contact_email, contact_phone, address } = req.body;
 
     // Verify OTP
-    // const isOTPValid = await verifyOTP(email, otp);
-    // if (!isOTPValid) {
-    //     res.status(400);
-    //     throw new Error('Invalid or expired OTP');
-    // }
+    const isOTPValid = await verifyOTP(email, otp, 'email');
+    if (!isOTPValid) {
+        res.status(400);
+        throw new Error('OTP không hợp lệ hoặc hết hạn');
+    }
 
     const customerExists = await Customer.findOne({ email });
     if (customerExists) {
         res.status(400);
-        throw new Error('Customer already exists');
+        throw new Error('Email đã tồn tại');
     }
 
     const customerCount = await Customer.countDocuments();
@@ -239,10 +240,10 @@ const getShopInfo = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Shop not found');
     }
-    const product = await Product.findOne({store_id:shop._id});
-    const response={
+    const product = await Product.findOne({ store_id: shop._id });
+    const response = {
         shopInfo: shop,
-        productInfo:product
+        productInfo: product
     }
     res.json(formatResponse(true, response, 'Shop info retrieved successfully'));
 });
