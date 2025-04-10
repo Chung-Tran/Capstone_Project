@@ -3,7 +3,7 @@ const initialState = {
     loading: false,
     error: null,
     shopInfo: null,
-
+    productInfo:null,
 };
 const shopSlice = createSlice({
     name: 'shop',
@@ -11,6 +11,9 @@ const shopSlice = createSlice({
     reducers: {
         saveShopData: (state, action) => {
             state.shopInfo = action.payload;
+        },
+        saveProductData: (state, action) => {
+            state.productInfo = action.payload;
         },
         updateShopData: (state, action) => {
             state.shopInfo = action.payload;
@@ -21,6 +24,6 @@ const shopSlice = createSlice({
     },
 });
 
-export const { saveShopData } = shopSlice.actions;
+export const { saveShopData,saveProductData } = shopSlice.actions;
 
 export default shopSlice.reducer; 

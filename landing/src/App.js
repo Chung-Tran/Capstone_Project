@@ -11,6 +11,7 @@ import Checkout from './pages/Checkout';
 import { useSelector } from 'react-redux';
 import Dashboard from './pages/seller/Dashboard';
 import ShopManagement from './pages/seller/ShopManagement';
+import ProductsManager from './pages/seller/ProductsManager';
 import Orders from './pages/seller/Orders';
 import Reviews from './pages/seller/Reviews';
 import Messages from './pages/seller/Messages';
@@ -90,7 +91,7 @@ const AppRoutes = () => {
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="shop" element={<ShopManagement />} />
-            <Route path="products" element={<Products />} />
+            <Route path="products" element={<ProductsManager />} />
             <Route path="orders" element={<Orders />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="messages" element={<Messages />} />

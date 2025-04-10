@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Customer = require('../models/customer.model');
+const Product = require('../models/product.model');
 const Store = require('../models/store.model');
 const CustomerItems = require('../models/customerItems.model');
 const Notification = require('../models/notification.model');
@@ -238,7 +239,12 @@ const getShopInfo = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Shop not found');
     }
-    res.json(formatResponse(true, shop, 'Shop info retrieved successfully'));
+    const product = await Product.findOne({store_id:shop._id});
+    const response={
+        shopInfo: shop,
+        productInfo:product
+    }
+    res.json(formatResponse(true, response, 'Shop info retrieved successfully'));
 });
 
 const updateShopInfo = asyncHandler(async (req, res) => {
