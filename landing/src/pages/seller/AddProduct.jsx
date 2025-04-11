@@ -18,8 +18,10 @@ import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { PlusOutlined } from "@ant-design/icons";
 import styled from "styled-components";
+import productService from "../../services/product.service";
+import { showToast } from "../../utils/toast";
 
-const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
+const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   const [form] = Form.useForm();
   const [mainImageList, setMainImageList] = useState([]);
   const [additionalImageList, setAdditionalImageList] = useState([]);
@@ -71,29 +73,20 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
   }, [initialData, form]);
 
   const handleOk = () => {
-    form.validateFields().then((values) => {
-      const product = {
-        ...values,
-        dimensions: {
-          length: values.length,
-          width: values.width,
-          height: values.height,
-        },
-        tags: values.tags
-          ? values.tags.split(",").map((tag) => tag.trim())
-          : [],
-        main_image: mainImageList.length > 0 ? mainImageList[0].url : null,
-        additional_images: additionalImageList.map((img) => img.url),
-      };
-      delete product.length;
-      delete product.width;
-      delete product.height;
-
-      onAddProduct(product);
-      form.resetFields();
-      setMainImageList([]);
-      setAdditionalImageList([]);
-      onClose();
+    form.validateFields().then(async (values) => {
+      try {
+        const response = await productService.product_create(values)
+        if (response.isSuccess) {
+          refreshData()
+          showToast.success('Thêm sản phẩm thành công')
+        }
+        form.resetFields();
+        setMainImageList([]);
+        setAdditionalImageList([]);
+        onClose();
+      } catch (error) {
+        showToast.error(error.message)
+      }
     });
   };
 
@@ -185,7 +178,7 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ status: "active", is_featured: false, ...initialData }}
+        initialValues={{ status: "active", is_featured: false, }}
       >
         <Tabs
           defaultActiveKey="1"

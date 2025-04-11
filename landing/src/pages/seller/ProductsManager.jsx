@@ -7,23 +7,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { MoveLeftIcon, MoveRightIcon } from "lucide-react";
 import AddProduct from "./AddProduct";
+import { useDispatch, useSelector } from "react-redux";
+import productService from "../../services/product.service";
+import { saveProductData } from "../../store/slices/shopSlice";
 
 const ProductsManager = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Ram 16GB KingTon",
-      price: 499000,
-      category: "Linh Kiện",
-      stock: 50,
-      status: "active",
-      featured: true,
-      image:
-        "https://th.bing.com/th/id/OIP.LZcUizeVzEz5bmubW1kPygHaHa?w=177&h=180&c=7&r=0&o=5&dpr=1.1&pid=1.7",
-    },
-    // Thêm sản phẩm mẫu khác
-  ]);
-
+  const productData = useSelector((state) => state.shop.productInfo);
+  const dispatch = useDispatch()
   // Thêm state cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -32,22 +22,20 @@ const ProductsManager = () => {
   // Tính toán các giá trị phân trang
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(
-    indexOfFirstProduct,
-    indexOfLastProduct
-  );
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const totalPages = 10;
 
   // Hàm xử lý chuyển trang
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
+  const handleRefreshData = async () => {
+    const response = await productService.getAllProducts();
+    if (response.isSuccess) {
+      const newData = response.data;
+      dispatch(saveProductData(newData))
+    }
 
-  // Hàm thêm sản phẩm mới
-  const handleAddProduct = (newProduct) => {
-    setProducts((prev) => [...prev, newProduct]);
-  };
-
+  }
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -81,10 +69,10 @@ const ProductsManager = () => {
                 Sản phẩm
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Giá
+                Mã sản phẩm
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Loại
+                Giá
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Kho
@@ -101,28 +89,27 @@ const ProductsManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {currentProducts.map((product) => (
+            {productData?.map((product) => (
               <tr key={product.id}>
                 <td className="px-6 py-4">
                   <div className="flex items-center">
                     <img
-                      src={product.image}
+                      src="https://th.bing.com/th/id/OIP.LZcUizeVzEz5bmubW1kPygHaHa?w=177&h=180&c=7&r=0&o=5&dpr=1.1&pid=1.7"
                       alt={product.name}
                       className="w-20 h-20 rounded-lg mr-3"
                     />
                     <span>{product.name}</span>
                   </div>
                 </td>
+                <td className="px-6 py-4">{product.product_code}</td>
                 <td className="px-6 py-4">{product.price.toLocaleString()}đ</td>
-                <td className="px-6 py-4">{product.category}</td>
-                <td className="px-6 py-4">{product.stock}</td>
+                <td className="px-6 py-4">{product.stock_quantity}</td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      product.status === "active"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs ${product.status === "active"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {product.status === "active" ? "Đang bán" : "Tạm ngừng"}
                   </span>
@@ -131,15 +118,7 @@ const ProductsManager = () => {
                   <input
                     type="checkbox"
                     checked={product.featured}
-                    onChange={() => {
-                      setProducts((prev) =>
-                        prev.map((p) =>
-                          p.id === product.id
-                            ? { ...p, featured: !p.featured }
-                            : p
-                        )
-                      );
-                    }}
+
                     className="w-5 h-5 accent-blue-500"
                   />
                 </td>
@@ -166,11 +145,11 @@ const ProductsManager = () => {
       {/* Pagination */}
       <div className="mt-4 flex justify-between items-center">
         <div>
-          <p className="text-sm text-gray-700">
+          {/* <p className="text-sm text-gray-700">
             Hiển thị {indexOfFirstProduct + 1} đến{" "}
             {Math.min(indexOfLastProduct, products.length)} trong tổng số{" "}
             {products.length} sản phẩm
-          </p>
+          </p> */}
         </div>
         <div className="flex space-x-2">
           <button
@@ -185,9 +164,8 @@ const ProductsManager = () => {
             <span
               key={page}
               onClick={() => handlePageChange(page)}
-              className={`px-4 py-1 border rounded-lg ${
-                currentPage === page ? " text-black" : "bg-white text-gray-700"
-              }`}
+              className={`px-4 py-1 border rounded-lg ${currentPage === page ? " text-black" : "bg-white text-gray-700"
+                }`}
             >
               {page}
             </span>
@@ -205,7 +183,7 @@ const ProductsManager = () => {
       <AddProduct
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAddProduct={handleAddProduct}
+        refreshData={handleRefreshData}
       />
     </div>
   );
