@@ -17,6 +17,7 @@ import {
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { PlusOutlined } from "@ant-design/icons";
+import styled from "styled-components";
 
 const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
   const [form] = Form.useForm();
@@ -33,6 +34,12 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
       reader.onload = () => resolve(reader.result);
       reader.onerror = (error) => reject(error);
     });
+
+  const CKEditorWrapper = styled.div`
+    .ck-editor__editable_inline {
+      min-height: 400px !important;
+    }
+  `;
 
   useEffect(() => {
     if (initialData) {
@@ -185,146 +192,127 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
           tabBarStyle={{ marginBottom: 24, fontWeight: 500, color: "#1d39c4" }}
         >
           <Tabs.TabPane tab="Thông tin cơ bản" key="1">
-  <Row gutter={16}>
-    {/* Mã sản phẩm */}
-    <Col xs={24} md={12}>
-      <Form.Item
-        name="product_code"
-        label="Mã sản phẩm"
-        rules={[{ required: true }]}
-      >
-        <Input placeholder="Nhập mã sản phẩm" style={{ borderRadius: 6 }} />
-      </Form.Item>
-    </Col>
-
-    {/* Thể loại (multi-select) */}
-    <Col xs={24} md={12}>
-      <Form.Item
-        name="category"
-        label="Thể Loại"
-        rules={[{ required: true, message: "Vui lòng chọn loại sản phẩm!" }]}
-      >
-        <Select
-          mode="multiple"
-          placeholder="Chọn loại sản phẩm"
-          style={{ borderRadius: 6 }}
-        >
-          {categories.map((category) => (
-            <Option key={category.id} value={category.id}>
-              {category.name}
-            </Option>
-          ))}
-        </Select>
-      </Form.Item>
-    </Col>
-
-    {/* Tên sản phẩm */}
-    <Col xs={24} md={12}>
-      <Form.Item
-        name="name"
-        label="Tên sản phẩm"
-        rules={[{ required: true }]}
-      >
-        <Input placeholder="Nhập tên sản phẩm" style={{ borderRadius: 6 }} />
-      </Form.Item>
-    </Col>
-
-    {/* Tồn kho */}
-    <Col xs={24} md={12}>
-      <Form.Item name="stock_quantity" label="Tồn kho">
-        <InputNumber
-          min={0}
-          placeholder="Số lượng"
-          style={{ width: "100%", borderRadius: 6 }}
-        />
-      </Form.Item>
-    </Col>
-
-    {/* Giá */}
-    <Col xs={24} md={12}>
-      <Form.Item name="price" label="Giá" rules={[{ required: true }]}>
-        <InputNumber
-          min={0}
-          placeholder="VNĐ"
-          style={{ width: "100%", borderRadius: 6 }}
-        />
-      </Form.Item>
-    </Col>
-
-    {/* Giá gốc */}
-    <Col xs={24} md={12}>
-      <Form.Item name="original_price" label="Giá gốc">
-        <InputNumber
-          min={0}
-          placeholder="VNĐ"
-          style={{ width: "100%", borderRadius: 6 }}
-        />
-      </Form.Item>
-    </Col>
-
-    {/* Trạng thái */}
-    <Col xs={24} md={12}>
-      <Form.Item name="status" label="Trạng thái">
-        <Select placeholder="Chọn trạng thái" style={{ borderRadius: 6 }}>
-          <Option value="active">Đang bán</Option>
-          <Option value="inactive">Tạm ngừng</Option>
-        </Select>
-      </Form.Item>
-    </Col>
-
-    {/* Nổi bật */}
-    <Col xs={24} md={12}>
-      <Form.Item name="is_featured" label="Nổi bật" valuePropName="checked">
-        <Switch checkedChildren="Có" unCheckedChildren="Không" />
-      </Form.Item>
-    </Col>
-  </Row>
-</Tabs.TabPane>
-
-          <Tabs.TabPane tab="Kích thước & Hình ảnh" key="2">
-            <div
-              style={{
-                background: "#fff",
-                padding: 20,
-                borderRadius: 8,
-              }}
-            >
-              <Space size="large" style={{ display: "flex", flexWrap: "wrap" }}>
-                <Form.Item name="length" label="Dài (cm)">
-                  <InputNumber
-                    min={0}
-                    style={{ width: 150, borderRadius: 6 }}
-                    placeholder="cm"
+            <Row gutter={16}>
+              {/* Mã sản phẩm */}
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="product_code"
+                  label="Mã sản phẩm"
+                  rules={[{ required: true }]}
+                >
+                  <Input
+                    placeholder="Nhập mã sản phẩm"
+                    style={{ borderRadius: 6 }}
                   />
                 </Form.Item>
-                <Form.Item name="width" label="Rộng (cm)">
-                  <InputNumber
-                    min={0}
-                    style={{ width: 150, borderRadius: 6 }}
-                    placeholder="cm"
+              </Col>
+
+              {/* Thể loại (multi-select) */}
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="category"
+                  label="Thể Loại"
+                  rules={[
+                    { required: true, message: "Vui lòng chọn loại sản phẩm!" },
+                  ]}
+                >
+                  <Select
+                    mode="multiple"
+                    placeholder="Chọn loại sản phẩm"
+                    style={{ borderRadius: 6 }}
+                  >
+                    {categories.map((category) => (
+                      <Option key={category.id} value={category.id}>
+                        {category.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              {/* Tên sản phẩm */}
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="name"
+                  label="Tên sản phẩm"
+                  rules={[{ required: true }]}
+                >
+                  <Input
+                    placeholder="Nhập tên sản phẩm"
+                    style={{ borderRadius: 6 }}
                   />
                 </Form.Item>
-                <Form.Item name="height" label="Cao (cm)">
+              </Col>
+
+              {/* Tồn kho */}
+              <Col xs={24} md={12}>
+                <Form.Item name="stock_quantity" label="Số lượng">
                   <InputNumber
                     min={0}
-                    style={{ width: 150, borderRadius: 6 }}
-                    placeholder="cm"
+                    placeholder="Nhập số lượng"
+                    style={{ width: "100%", borderRadius: 6 }}
                   />
                 </Form.Item>
-              </Space>
+              </Col>
 
-              <Form.Item name="main_image" label="Ảnh chính">
-                <Upload {...mainImageProps}>
-                  {mainImageList.length >= 1 ? null : uploadButton}
-                </Upload>
-              </Form.Item>
+              {/* Giá */}
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="price"
+                  label="Giá bán"
+                  rules={[{ required: true }]}
+                >
+                  <InputNumber
+                    min={0}
+                    placeholder="VNĐ"
+                    style={{ width: "100%", borderRadius: 6 }}
+                  />
+                </Form.Item>
+              </Col>
 
-              <Form.Item name="additional_images" label="Ảnh phụ">
-                <Upload {...additionalImageProps}>
-                  {additionalImageList.length >= 8 ? null : uploadButton}
-                </Upload>
-              </Form.Item>
-            </div>
+              {/* Giá gốc */}
+              <Col xs={24} md={12}>
+                <Form.Item name="original_price" label="Giá gốc">
+                  <InputNumber
+                    min={0}
+                    placeholder="VNĐ"
+                    style={{ width: "100%", borderRadius: 6 }}
+                  />
+                </Form.Item>
+              </Col>
+
+              {/* Trạng thái */}
+              <Col xs={24} md={12}>
+                <Form.Item name="status" label="Trạng thái">
+                  <Select
+                    placeholder="Chọn trạng thái"
+                    style={{ borderRadius: 6 }}
+                  >
+                    <Option value="active">Đang bán</Option>
+                    <Option value="inactive">Tạm ngừng</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              {/* Ảnh chính */}
+              <Col xs={24} md={12}>
+                <Form.Item name="main_image" label="Ảnh chính">
+                  <Upload {...mainImageProps}>
+                    {mainImageList.length >= 1 ? null : uploadButton}
+                  </Upload>
+                </Form.Item>
+              </Col>
+
+              {/* Ảnh phụ */}
+              <Col xs={24} md={12}>
+                <Form.Item name="additional_images" label="Ảnh phụ">
+                  <Upload {...additionalImageProps}>
+                    {additionalImageList.length >= 8 ? null : uploadButton}
+                  </Upload>
+                </Form.Item>
+              </Col>
+            </Row>
           </Tabs.TabPane>
 
           <Tabs.TabPane tab="Mô tả & Tags" key="3">
@@ -336,14 +324,16 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
               }}
             >
               <Form.Item name="description" label="Mô tả">
-                <CKEditor
-                  editor={ClassicEditor}
-                  data={initialData.description || ""}
-                  onChange={(event, editor) => {
-                    const data = editor.getData();
-                    form.setFieldsValue({ description: data });
-                  }}
-                />
+                <CKEditorWrapper>
+                  <CKEditor
+                    editor={ClassicEditor}
+                    data={initialData.description || ""}
+                    onChange={(_event, editor) => {
+                      const data = editor.getData();
+                      form.setFieldsValue({ description: data });
+                    }}
+                  />
+                </CKEditorWrapper>
               </Form.Item>
 
               <Form.Item name="tags" label="Tags (phân cách bởi dấu phẩy)">
