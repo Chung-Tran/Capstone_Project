@@ -37,7 +37,7 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
 
   const CKEditorWrapper = styled.div`
     .ck-editor__editable_inline {
-      min-height: 400px !important;
+      min-height: 300px !important;
     }
   `;
 
@@ -293,29 +293,18 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
                   </Select>
                 </Form.Item>
               </Col>
-            </Row>
-            <Row gutter={16}>
-              {/* Ảnh chính */}
               <Col xs={24} md={12}>
-                <Form.Item name="main_image" label="Ảnh chính">
-                  <Upload {...mainImageProps}>
-                    {mainImageList.length >= 1 ? null : uploadButton}
-                  </Upload>
-                </Form.Item>
-              </Col>
-
-              {/* Ảnh phụ */}
-              <Col xs={24} md={12}>
-                <Form.Item name="additional_images" label="Ảnh phụ">
-                  <Upload {...additionalImageProps}>
-                    {additionalImageList.length >= 8 ? null : uploadButton}
-                  </Upload>
+                <Form.Item name="tags" label="Tags (phân cách bởi dấu phẩy)">
+                  <Input
+                    style={{ borderRadius: 6 }}
+                    placeholder="tag1, tag2, tag3"
+                  />
                 </Form.Item>
               </Col>
             </Row>
           </Tabs.TabPane>
 
-          <Tabs.TabPane tab="Mô tả & Tags" key="3">
+          <Tabs.TabPane tab="Hình ảnh & mô tả" key="3">
             <div
               style={{
                 background: "#fff",
@@ -323,6 +312,25 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
                 borderRadius: 8,
               }}
             >
+              <Row gutter={16}>
+                {/* Ảnh chính */}
+                <Col xs={24} md={8}>
+                  <Form.Item name="main_image" label="Ảnh chính">
+                    <Upload {...mainImageProps}>
+                      {mainImageList.length >= 1 ? null : uploadButton}
+                    </Upload>
+                  </Form.Item>
+                </Col>
+
+                {/* Ảnh phụ */}
+                <Col xs={24} md={8}>
+                  <Form.Item name="additional_images" label="Ảnh phụ">
+                    <Upload {...additionalImageProps}>
+                      {additionalImageList.length >= 8 ? null : uploadButton}
+                    </Upload>
+                  </Form.Item>
+                </Col>
+              </Row>
               <Form.Item name="description" label="Mô tả">
                 <CKEditorWrapper>
                   <CKEditor
@@ -336,12 +344,7 @@ const AddProduct = ({ isOpen, onClose, onAddProduct, initialData = {} }) => {
                 </CKEditorWrapper>
               </Form.Item>
 
-              <Form.Item name="tags" label="Tags (phân cách bởi dấu phẩy)">
-                <Input
-                  style={{ borderRadius: 6 }}
-                  placeholder="tag1, tag2, tag3"
-                />
-              </Form.Item>
+
             </div>
           </Tabs.TabPane>
         </Tabs>
