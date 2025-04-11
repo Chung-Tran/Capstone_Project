@@ -1,11 +1,13 @@
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/product.model');
+const Store = require('../models/store.model');
 const formatResponse = require('../middlewares/responseFormat');
 
 const createProduct = asyncHandler(async (req, res) => {
     const { name, price, description, category_id } = req.body;
-    const store_id = req.user.storeId;
-
+    const store = await Store.findOne({ owner_id: req.user._id });
+    const store_id = store._id;
+    console.log(store)
     const productCount = await Product.countDocuments();
     const product_code = `PROD-${(productCount + 1).toString().padStart(3, '0')}`;
 
@@ -110,6 +112,14 @@ const deleteProduct = asyncHandler(async (req, res) => {
         throw new Error('Product not found');
     }
 });
+const getProductByStoreId = asyncHandler(async (req, res) => {
+    const store = await Store.findOne({ owner_id: req.user._id });
+    const store_id = store._id;
+
+    const products = await Product.find({ store_id: store_id });
+
+    res.status(200).json(formatResponse(true, products, "Lấy sản phẩm thành công"))
+});
 
 module.exports = {
     ProductController: {
@@ -117,6 +127,7 @@ module.exports = {
         getProducts,
         getProductById,
         updateProduct,
-        deleteProduct
+        deleteProduct,
+        getProductByStoreId
     }
 };

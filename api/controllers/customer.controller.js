@@ -240,7 +240,7 @@ const getShopInfo = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Shop not found');
     }
-    const product = await Product.findOne({ store_id: shop._id });
+    const product = await Product.find({ store_id: shop._id });
     const response = {
         shopInfo: shop,
         productInfo: product
