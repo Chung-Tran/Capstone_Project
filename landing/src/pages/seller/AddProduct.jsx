@@ -13,13 +13,193 @@ import {
   Upload,
   Image,
   Button,
+  Table,
 } from "antd";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import styled from "styled-components";
 import productService from "../../services/product.service";
 import { showToast } from "../../utils/toast";
+
+const CKEditorWrapper = styled.div`
+  .ck-editor__editable_inline {
+    min-height: 300px !important;
+  }
+`;
+
+const VariantManager = ({ form, initialData }) => {
+  const [attributes, setAttributes] = useState(
+    initialData.variants?.attributes || [{ name: "", values: [] }]
+  );
+  const [variants, setVariants] = useState(initialData.variants?.list || []);
+
+  // Thêm thuộc tính mới (ví dụ: Size, Màu sắc)
+  const addAttribute = () => {
+    setAttributes([...attributes, { name: "", values: [] }]);
+  };
+
+  // Cập nhật tên thuộc tính
+  const updateAttributeName = (index, value) => {
+    const newAttributes = [...attributes];
+    newAttributes[index].name = value;
+    setAttributes(newAttributes);
+    generateVariants(newAttributes);
+  };
+
+  // Cập nhật giá trị thuộc tính (ví dụ: S, M, L)
+  const updateAttributeValues = (index, values) => {
+    const newAttributes = [...attributes];
+    newAttributes[index].values = values;
+    setAttributes(newAttributes);
+    generateVariants(newAttributes);
+  };
+
+  // Tạo các biến thể từ thuộc tính
+  const generateVariants = (attrs) => {
+    const validAttrs = attrs.filter((attr) => attr.name && attr.values.length > 0);
+    if (validAttrs.length === 0) {
+      setVariants([]);
+      form.setFieldsValue({ variants: [] });
+      return;
+    }
+
+    const combinations = validAttrs.reduce(
+      (acc, attr) =>
+        acc.flatMap((combo) =>
+          attr.values.map((value) => ({ ...combo, [attr.name]: value }))
+        ),
+      [{}]
+    );
+
+    const newVariants = combinations.map((combo, index) => ({
+      id: index,
+      attributes: combo,
+      sku: combo.sku || `SKU-${index + 1}`,
+      price: combo.price || 0,
+      stock: combo.stock || 0,
+    }));
+
+    setVariants(newVariants);
+    form.setFieldsValue({ variants: newVariants });
+  };
+
+  // Cập nhật thông tin biến thể
+  const updateVariant = (id, field, value) => {
+    const newVariants = variants.map((variant) =>
+      variant.id === id ? { ...variant, [field]: value } : variant
+    );
+    setVariants(newVariants);
+    form.setFieldsValue({ variants: newVariants });
+  };
+
+  // Xóa thuộc tính
+  const removeAttribute = (index) => {
+    const newAttributes = attributes.filter((_, i) => i !== index);
+    setAttributes(newAttributes);
+    generateVariants(newAttributes);
+  };
+
+  // Cột cho bảng biến thể
+  const columns = [
+    {
+      title: "Biến thể",
+      dataIndex: "attributes",
+      render: (attributes) =>
+        Object.entries(attributes)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(", "),
+    },
+    {
+      title: "SKU",
+      dataIndex: "sku",
+      render: (sku, record) => (
+        <Input
+          value={sku}
+          onChange={(e) => updateVariant(record.id, "sku", e.target.value)}
+        />
+      ),
+    },
+    {
+      title: "Giá",
+      dataIndex: "price",
+      render: (price, record) => (
+        <InputNumber
+          min={0}
+          value={price}
+          onChange={(value) => updateVariant(record.id, "price", value)}
+          formatter={(value) =>
+            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          }
+          parser={(value) => value.replace(/[^0-9]/g, "")}
+        />
+      ),
+    },
+    {
+      title: "Tồn kho",
+      dataIndex: "stock",
+      render: (stock, record) => (
+        <InputNumber
+          min={0}
+          value={stock}
+          onChange={(value) => updateVariant(record.id, "stock", value)}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <h4>Thuộc tính</h4>
+      {attributes.map((attr, index) => (
+        <Row gutter={16} key={index} style={{ marginBottom: 16 }}>
+          <Col xs={8}>
+            <Input
+              placeholder="Tên thuộc tính (VD: Size, Màu sắc)"
+              value={attr.name}
+              onChange={(e) => updateAttributeName(index, e.target.value)}
+            />
+          </Col>
+          <Col xs={12}>
+            <Select
+              mode="tags"
+              placeholder="Giá trị (VD: S, M, L)"
+              value={attr.values}
+              onChange={(values) => updateAttributeValues(index, values)}
+              style={{ width: "100%" }}
+            />
+          </Col>
+          <Col xs={4}>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => removeAttribute(index)}
+            />
+          </Col>
+        </Row>
+      ))}
+      <Button
+        type="dashed"
+        onClick={addAttribute}
+        icon={<PlusOutlined />}
+        style={{ width: "100%", marginBottom: 16 }}
+      >
+        Thêm thuộc tính
+      </Button>
+
+      <h4>Danh sách biến thể</h4>
+      <Table
+        dataSource={variants}
+        columns={columns}
+        rowKey="id"
+        pagination={false}
+      />
+      <Form.Item name="variants" noStyle>
+        <Input type="hidden" />
+      </Form.Item>
+    </div>
+  );
+};
 
 const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   const [form] = Form.useForm();
@@ -37,15 +217,12 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
       reader.onerror = (error) => reject(error);
     });
 
-  const CKEditorWrapper = styled.div`
-    .ck-editor__editable_inline {
-      min-height: 300px !important;
-    }
-  `;
-
   useEffect(() => {
     if (initialData) {
-      form.setFieldsValue(initialData);
+      form.setFieldsValue({
+        ...initialData,
+        variants: initialData.variants?.list || [],
+      });
       if (initialData.main_image) {
         setMainImageList([
           {
@@ -56,10 +233,7 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
           },
         ]);
       }
-      if (
-        initialData.additional_images &&
-        initialData.additional_images.length > 0
-      ) {
+      if (Array.isArray(initialData.additional_images)) {
         setAdditionalImageList(
           initialData.additional_images.map((url, index) => ({
             uid: `-${index + 1}`,
@@ -75,17 +249,27 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   const handleOk = () => {
     form.validateFields().then(async (values) => {
       try {
-        const response = await productService.product_create(values)
+        const mainImage = mainImageList[0]?.url || "";
+        const additionalImages = additionalImageList.map((file) => file.url);
+
+        const payload = {
+          ...values,
+          main_image: mainImage,
+          additional_images: additionalImages,
+          variants: values.variants || [],
+        };
+
+        const response = await productService.product_create(payload);
         if (response.isSuccess) {
-          refreshData()
-          showToast.success('Thêm sản phẩm thành công')
+          refreshData();
+          showToast.success("Thêm sản phẩm thành công");
         }
         form.resetFields();
         setMainImageList([]);
         setAdditionalImageList([]);
         onClose();
       } catch (error) {
-        showToast.error(error.message)
+        showToast.error(error.message);
       }
     });
   };
@@ -178,7 +362,7 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ status: "active", is_featured: false, }}
+        initialValues={{ status: "active", is_featured: false, variants: [] }}
       >
         <Tabs
           defaultActiveKey="1"
@@ -237,13 +421,21 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                 </Form.Item>
               </Col>
 
-              {/* Tồn kho */}
               <Col xs={24} md={12}>
-                <Form.Item name="stock_quantity" label="Số lượng">
+                <Form.Item name="stock_quantity" label="Tồn kho">
                   <InputNumber
                     min={0}
-                    placeholder="Nhập số lượng"
+                    placeholder="Nhập tồn kho"
                     style={{ width: "100%", borderRadius: 6 }}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    parser={(value) => value.replace(/[^0-9]/g, "")}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                   />
                 </Form.Item>
               </Col>
@@ -259,6 +451,15 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                     min={0}
                     placeholder="VNĐ"
                     style={{ width: "100%", borderRadius: 6 }}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    parser={(value) => value.replace(/[^0-9]/g, "")}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                   />
                 </Form.Item>
               </Col>
@@ -270,6 +471,15 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                     min={0}
                     placeholder="VNĐ"
                     style={{ width: "100%", borderRadius: 6 }}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    parser={(value) => value.replace(/[^0-9]/g, "")}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                   />
                 </Form.Item>
               </Col>
@@ -292,6 +502,16 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                     style={{ borderRadius: 6 }}
                     placeholder="tag1, tag2, tag3"
                   />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane tab="Biến thể" key="2">
+            <Row gutter={16}>
+              <Col xs={24}>
+                <Form.Item label="Quản lý biến thể">
+                  <VariantManager form={form} initialData={initialData} />
                 </Form.Item>
               </Col>
             </Row>
@@ -336,8 +556,6 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                   />
                 </CKEditorWrapper>
               </Form.Item>
-
-
             </div>
           </Tabs.TabPane>
         </Tabs>
