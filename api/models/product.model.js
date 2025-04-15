@@ -11,10 +11,10 @@ const productSchema = new mongoose.Schema({
         ref: 'Store',
         required: true
     },
-    category_id: {
+    category_id: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category'
-    },
+    }],
     name: {
         type: String,
         required: true
@@ -26,10 +26,16 @@ const productSchema = new mongoose.Schema({
     },
     original_price: Number,
     discount_percentage: Number,
-    stock_quantity: {
-        type: Number,
-        default: 0
-    },
+    variants: [{
+        variants_name: { type: String, required: true },
+        variants_stock_quantity: { type: Number, default: 0 },
+        attributes: {
+            type: Map,
+            of: String,
+            default: {}
+        }
+    }],
+    total_stock_quantity: Number,
     weight: Number,
     dimensions: {
         length: Number,
@@ -52,4 +58,4 @@ const productSchema = new mongoose.Schema({
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-module.exports = mongoose.model('Product', productSchema); 
+module.exports = mongoose.model('Product', productSchema);

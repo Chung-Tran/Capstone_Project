@@ -28,28 +28,25 @@ const CKEditorWrapper = styled.div`
   }
 `;
 
-const VariantManager = ({ form, initialData,flagResetData, callbackFlagReset }) => {
+const VariantManager = ({ form, initialData }) => {
   const [attributes, setAttributes] = useState(
     initialData?.variants?.attributes || [{ variants_name: "", values: [] }]
   );
   const [variants, setVariants] = useState(
-    initialData?.variants?.list || []
+    initialData?.variants || []
   );
-  console.log("from variant",flagResetData)
-  // Hàm reset trạng thái
-  const reset = () => {
-    setAttributes([{ variants_name: "", values: [] }]);
-    setVariants([]);
-    form.setFieldsValue({ variants: [] });
-  };
-  useEffect(()=>{
-    if(flagResetData){
-      console.log("flagResetData",flagResetData)
-      reset()
-    callbackFlagReset()
 
+  useEffect(() => {
+    if (initialData?.variants) {
+      setVariants(
+        initialData.variants.map((variant, index) => ({
+          ...variant,
+          id: variant._id || index, // Giữ _id nếu có, hoặc dùng index tạm
+        }))
+      );
+      form.setFieldsValue({ variants: initialData.variants });
     }
-  },[flagResetData])
+  }, [initialData, form]);
 
   const addAttribute = () => {
     setAttributes([...attributes, { variants_name: "", values: [] }]);
@@ -80,8 +77,8 @@ const VariantManager = ({ form, initialData,flagResetData, callbackFlagReset }) 
       (attr) => attr.variants_name && attr.values.length > 0
     );
     if (validAttrs.length === 0) {
-      setVariants([]);
-      form.setFieldsValue({ variants: [] });
+      setVariants(initialData?.variants || []);
+      form.setFieldsValue({ variants: initialData?.variants || [] });
       return;
     }
 
@@ -96,19 +93,32 @@ const VariantManager = ({ form, initialData,flagResetData, callbackFlagReset }) 
       [{}]
     );
 
-    const newVariants = combinations.map((combo, index) => ({
-      id: index,
-      attributes: combo,
-      variants_name: `SKU-${index + 1}`,
-      variants_stock_quantity: 0,
-    }));
+    const newVariants = combinations.map((combo, index) => {
+      const existingVariant = variants.find(
+        (v) =>
+          Object.entries(combo).every(
+            ([key, value]) => v.attributes?.[key] === value
+          )
+      );
+      return {
+        id: existingVariant?._id || index,
+        _id: existingVariant?._id, // Giữ _id nếu có
+        attributes: combo,
+        variants_name: existingVariant?.variants_name || `SKU-${index + 1}`,
+        variants_stock_quantity:
+          existingVariant?.variants_stock_quantity || 0,
+      };
+    });
 
     setVariants(newVariants);
     form.setFieldsValue({ variants: newVariants });
   };
 
   const updateVariant = (id, field, value) => {
-    if (field === "variants_name" && variants.some((v) => v.variants_name === value && v.id !== id)) {
+    if (
+      field === "variants_name" &&
+      variants.some((v) => v.variants_name === value && v.id !== id)
+    ) {
       showToast.error("SKU đã tồn tại!");
       return;
     }
@@ -124,9 +134,11 @@ const VariantManager = ({ form, initialData,flagResetData, callbackFlagReset }) 
       title: "Biến thể",
       dataIndex: "attributes",
       render: (attributes) =>
-        Object.entries(attributes)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join(", "),
+        attributes
+          ? Object.entries(attributes)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(", ")
+          : "-",
     },
     {
       title: "SKU",
@@ -208,15 +220,13 @@ const VariantManager = ({ form, initialData,flagResetData, callbackFlagReset }) 
   );
 };
 
-const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
+const EditProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   const [form] = Form.useForm();
   const [mainImageList, setMainImageList] = useState([]);
   const [additionalImageList, setAdditionalImageList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [categories, setCategories] = useState([]);
-  const [flagResetData, setFlagResetData] = useState(false);
-
   const { Option } = Select;
 
   const getBase64 = (file) =>
@@ -240,12 +250,12 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   }, []);
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData && Object.keys(initialData).length > 0) {
       form.setFieldsValue({
         ...initialData,
-        category_id: initialData.category_id || [],
+        category_id: initialData.category_id?.map((cat) => cat._id) || [],
         variants: initialData.variants || [],
-        tags: initialData.tags ? initialData.tags.join(', ') : ''
+        tags: initialData.tags ? initialData.tags.join(', ') : '',
       });
       if (initialData.main_image) {
         setMainImageList([
@@ -295,28 +305,39 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
         0
       ) || 0;
 
+      // Hợp nhất biến thể cũ và mới
+      const updatedVariants = values.variants.map((variant) => ({
+        ...variant,
+        _id: variant._id, // Giữ _id nếu có
+        attributes: variant.attributes || {},
+        variants_name: variant.variants_name || `SKU-${Date.now()}`,
+        variants_stock_quantity: variant.variants_stock_quantity || 0,
+      }));
+
       const payload = {
         ...values,
         main_image: mainImage,
         additional_images: additionalImages,
         total_stock_quantity,
         category_id: values.category_id || [],
-        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : []
+        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : [],
+        variants: updatedVariants,
       };
 
-      const response = await productService.product_create(payload);
+      console.log('Payload gửi API:', payload);
+
+      const response = await productService.product_update(initialData._id, payload);
       if (response.isSuccess) {
         refreshData();
-        showToast.success("Thêm sản phẩm thành công");
-        setFlagResetData(true);
+        showToast.success("Cập nhật sản phẩm thành công");
         form.resetFields();
         setMainImageList([]);
         setAdditionalImageList([]);
         onClose();
       }
     } catch (error) {
-      console.error('Lỗi khi thêm sản phẩm:', error);
-      showToast.error(error.message || "Không thể thêm sản phẩm");
+      console.error('Lỗi khi cập nhật sản phẩm:', error);
+      showToast.error(error.message || "Không thể cập nhật sản phẩm");
     }
   };
 
@@ -324,7 +345,6 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
     form.resetFields();
     setMainImageList([]);
     setAdditionalImageList([]);
-    setFlagResetData(true);
     onClose();
   };
 
@@ -385,13 +405,13 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
     <Modal
       title={
         <span style={{ fontSize: 20, fontWeight: 600, color: "#1d39c4" }}>
-          Thêm sản phẩm
+          Cập nhật sản phẩm
         </span>
       }
       open={isOpen}
       onCancel={handleCancel}
       onOk={handleOk}
-      okText="Thêm"
+      okText="Cập nhật"
       cancelText="Hủy"
       width={1200}
       style={{ top: 20 }}
@@ -537,12 +557,7 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
             <Row gutter={16}>
               <Col xs={24}>
                 <Form.Item label="Quản lý biến thể">
-                  <VariantManager
-                    form={form}
-                    initialData={initialData}
-                    flagResetData={flagResetData}
-                    callbackFlagReset={() => setFlagResetData(false)}
-                  />
+                  <VariantManager form={form} initialData={initialData} />
                 </Form.Item>
               </Col>
             </Row>
@@ -577,7 +592,7 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
                 <CKEditorWrapper>
                   <CKEditor
                     editor={ClassicEditor}
-                    data={initialData.description || ""}
+                    data={initialData?.description || ""}
                     onChange={(_event, editor) => {
                       const data = editor.getData();
                       form.setFieldsValue({ description: data });
@@ -605,4 +620,4 @@ const AddProduct = ({ isOpen, onClose, refreshData, initialData = {} }) => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;
