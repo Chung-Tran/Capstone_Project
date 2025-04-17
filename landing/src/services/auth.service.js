@@ -81,6 +81,14 @@ const authService = {
         } catch (error) {
             throw handleError(error);
         }
+    },
+    update_account_password: async (data) => {
+        try {
+            const response = await axiosClient.patch('/customers/update-password', data);
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
     }
 }
 

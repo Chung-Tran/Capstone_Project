@@ -1,2 +1,4 @@
 api/package-lock.json
 landing/package-lock.json
+ai_service/.venv
+**/__pycache__/

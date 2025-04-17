@@ -76,7 +76,7 @@ function AccountInfo() {
         setFormData(userData);
         setIsEditing(false);
     };
-
+    console.log(formData.birthDate)
     return (
         <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-none">
             <div className="flex justify-between items-center mb-6">
@@ -215,14 +215,18 @@ function AccountInfo() {
 
                             {/* Ngày sinh */}
                             <div className="space-y-2">
-                                <label htmlFor="birthdate" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">
                                     Ngày sinh
                                 </label>
                                 <input
                                     type="date"
-                                    id="birthdate"
-                                    name="birthdate"
-                                    value={formData.birthdate || ''}
+                                    id="birthDate"
+                                    name="birthDate"
+                                    value={
+                                        formData.birthDate
+                                            ? new Date(formData.birthDate).toISOString().slice(0, 10)
+                                            : ''
+                                    }
                                     onChange={handleChange}
                                     disabled={!isEditing}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
