@@ -10,7 +10,7 @@ const { sendOTPEmail } = require('../services/emailService');
 const { generateToken } = require('../services/jwtService');
 const { uploadImage } = require('../services/uploadService');
 const upload = require('../middlewares/uploadMiddleware');
-
+const bcrypt = require('bcryptjs');
 const sendRegistrationOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
@@ -331,6 +331,30 @@ const getAccountInfo = asyncHandler(async (req, res) => {
         cartCount: cart
     }, 'Account info retrieved successfully'));
 });
+const updatePassword = asyncHandler(async (req, res) => {
+    const user = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    const customer = await Customer.findById(user._id);
+    if (!customer) {
+        return res.status(404).json(formatResponse(false, {}, 'User not found'));
+    }
+
+    const isMatch = await customer.comparePassword(currentPassword);
+    if (!isMatch) {
+        return res.status(400).json(formatResponse(false, {}, 'Mật khẩu hiện tại không đúng!'));
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json(formatResponse(false, {}, 'Mật khẩu mới phải có ít nhất 6 ký tự!'));
+    }
+
+    customer.password = await bcrypt.hash(newPassword, 10);
+    await customer.save();
+
+    res.json(formatResponse(true, {}, 'Đổi mật khẩu thành công!'));
+});
+
 
 module.exports = {
     CustomerController: {
@@ -342,6 +366,7 @@ module.exports = {
         updateCustomerProfile,
         getShopInfo,
         updateShopInfo,
-        getAccountInfo
+        getAccountInfo,
+        updatePassword
     }
 }; 
