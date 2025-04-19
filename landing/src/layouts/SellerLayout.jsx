@@ -108,7 +108,7 @@ const SellerLayout = ({ children }) => {
 
                     {/* Loading Overlay */}
                     {loading && (
-                        <div className="absolute inset-0 bg-white bg-opacity-70 z-10">
+                        <div className="absolute inset-0 bg-white bg-opacity-70 z-[9999]">
                             <div className="w-full h-full flex flex-col items-center justify-center">
                                 <svg className="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

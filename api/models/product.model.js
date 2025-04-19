@@ -4,7 +4,6 @@ const productSchema = new mongoose.Schema({
     product_code: {
         type: String,
         required: true,
-        unique: true
     },
     store_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,17 +24,12 @@ const productSchema = new mongoose.Schema({
         required: true
     },
     original_price: Number,
+    stock: Number,
+    quantitySold: {
+        type: Number,
+        default: 0
+    }, //SL Đã bán
     discount_percentage: Number,
-    variants: [{
-        variants_name: { type: String, required: true },
-        variants_stock_quantity: { type: Number, default: 0 },
-        attributes: {
-            type: Map,
-            of: String,
-            default: {}
-        }
-    }],
-    total_stock_quantity: Number,
     weight: Number,
     dimensions: {
         length: Number,

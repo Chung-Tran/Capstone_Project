@@ -15,6 +15,10 @@ const storeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    followers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer',
+    }],
     business_field: Array,
     store_description: String,
     store_logo: String,
