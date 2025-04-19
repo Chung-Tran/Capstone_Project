@@ -110,7 +110,7 @@ const AppRoutes = () => {
               <Route path="/danh-cho-ban" element={<ForYouPage />} />
               <Route path="/khuyen-mai" element={<PromotionsPage />} />
               <Route path="/san-pham-moi" element={<NewProductsPage />} />
-              <Route path="/san-pham/:slug" element={<ProductDetailPage />} />
+              <Route path="/san-pham/:id" element={<ProductDetailPage />} />
               <Route path="/tim-kiem-san-pham/:slug" element={<SearchProductPage />} />
               <Route path="/gio-hang" element={<ShoppingCart />} />
               <Route path="/san-pham-yeu-thich" element={<Wishlist />} />

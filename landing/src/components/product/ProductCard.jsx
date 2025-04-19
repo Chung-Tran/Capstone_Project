@@ -57,16 +57,10 @@ const ProductCardItem = ({ product }) => {
             {/* Image gallery with hover effect */}
             <div className="relative h-64 overflow-hidden rounded-t-lg">
                 <img
-                    src={isHovered && item.images && item.images.length > 1 ? item.images[1] : item.image}
+                    src={item?.main_image}
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-
-                {/* Quick view */}
-                <div className={`absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white py-2 px-4 transition-all duration-300 flex items-center justify-center gap-2 ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <Eye size={16} />
-                    <span className="text-sm font-medium">Xem nhanh</span>
-                </div>
             </div>
 
             {/* Product content */}

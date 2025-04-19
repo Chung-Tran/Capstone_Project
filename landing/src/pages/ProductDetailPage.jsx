@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Star,
     ShoppingCart,
@@ -17,11 +17,19 @@ import {
 } from 'lucide-react';
 import CarouselList from '../components/CarouselList';
 import ProductCardItem from '../components/product/ProductCard';
-import { formatCurrency } from '../common/methodsCommon';
+import { formatCurrency, formatDateTime } from '../common/methodsCommon';
+import ImageGallery from 'react-image-gallery';
+import "react-image-gallery/styles/css/image-gallery.css";
+import productService from '../services/product.service';
+import { showToast } from '../utils/toast';
+import { useLoading } from '../utils/useLoading';
+import { useParams } from 'react-router-dom';
+import { Rating } from 'react-simple-star-rating'
+import reviewService from '../services/review.service';
+import ReviewModal from '../components/ReviewModal';
 
 const ProductDetailPage = () => {
-    // State cho hình ảnh hiện tại
-    const [currentImage, setCurrentImage] = useState(0);
+    const { setLoading } = useLoading()
     // State cho số lượng
     const [quantity, setQuantity] = useState(1);
     // State cho tab mô tả sản phẩm
@@ -29,108 +37,60 @@ const ProductDetailPage = () => {
     // State cho các hình ảnh đánh giá được mở rộng
     const [expandedReviewImage, setExpandedReviewImage] = useState(null);
 
-    // Dữ liệu mẫu
-    const product = {
-        id: 'product-1',
-        name: 'Điện thoại Samsung Galaxy S23 Ultra 256GB',
-        price: 24990000,
-        originalPrice: 31990000,
-        discount: 22,
-        rating: 4.8,
-        reviewCount: 254,
-        soldCount: 1243,
-        stockStatus: 'Còn hàng',
-        images: [
-            "/api/placeholder/800/800",
-            "/api/placeholder/800/800",
-            "/api/placeholder/800/800",
-            "/api/placeholder/800/800",
-            "/api/placeholder/800/800"
-        ],
-        colors: ['Đen', 'Trắng', 'Xanh', 'Tím'],
-        variants: [
-            { name: '128GB', price: 21990000 },
-            { name: '256GB', price: 24990000 },
-            { name: '512GB', price: 28990000 }
-        ],
-        description: `
-      <p><strong>Samsung Galaxy S23 Ultra</strong> mẫu điện thoại cao cấp nhất của dòng S23 series, sở hữu camera độ phân giải 200MP ấn tượng, chip Snapdragon 8 Gen 2 mạnh mẽ, bộ nhớ RAM 8GB, bộ nhớ trong 256GB cùng với khung viền kim loại bền bỉ, màn hình 6.8 inch sắc nét.</p>
-      <br/>
-      <p><strong>Thông số kỹ thuật:</strong></p>
-      <ul>
-        <li>Màn hình: Dynamic AMOLED 2X, 6.8 inch, Quad HD+ (3088 x 1440), 120Hz</li>
-        <li>Camera sau: 200MP + 12MP + 10MP + 10MP</li>
-        <li>Camera trước: 12MP</li>
-        <li>Chip: Snapdragon 8 Gen 2</li>
-        <li>RAM: 8GB</li>
-        <li>Bộ nhớ trong: 256GB</li>
-        <li>Pin: 5000mAh, Sạc nhanh 45W</li>
-        <li>Hệ điều hành: Android 13, One UI 5.1</li>
-      </ul>
-    `,
-        specifications: [
-            { name: 'Màn hình', value: 'Dynamic AMOLED 2X, 6.8 inch, Quad HD+ (3088 x 1440), 120Hz' },
-            { name: 'Camera sau', value: 'Camera chính: 200MP, f/1.7\nCamera góc siêu rộng: 12MP, f/2.2\nCamera tele 1: 10MP, f/2.4, zoom quang 3x\nCamera tele 2: 10MP, f/4.9, zoom quang 10x' },
-            { name: 'Camera trước', value: '12MP, f/2.2' },
-            { name: 'Chip', value: 'Snapdragon 8 Gen 2 for Galaxy' },
-            { name: 'RAM', value: '8GB' },
-            { name: 'Bộ nhớ trong', value: '256GB' },
-            { name: 'Pin', value: '5000mAh, Sạc nhanh 45W, sạc không dây 15W' },
-            { name: 'Hệ điều hành', value: 'Android 13, One UI 5.1' },
-            { name: 'Kích thước', value: '163.4 x 78.1 x 8.9 mm' },
-            { name: 'Trọng lượng', value: '233g' },
-            { name: 'Chống nước', value: 'IP68' },
-        ]
+    const [product, setProduct] = useState({});
+    const [reviewList, setReviewList] = useState({});
+    const [isModalReviewOpen, setIsModalReviewOpen] = useState(false);
+    const [store, setStore] = useState({});
+    const { id } = useParams();
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchData = async () => {
+            setLoading(true);
+            await Promise.all([
+                fetchProductById(id),
+                fetchProductReviews(id, { limit: 5, skip: 0 }),
+            ]);
+            setLoading(false);
+        };
+
+        fetchData();
+    }, [id]);
+
+    const fetchProductById = async (id) => {
+        try {
+            const response = await productService.getProductById(id);
+            if (response.isSuccess) {
+                setProduct(response.data);
+                setStore(response.data.store_info);
+            } else {
+                showToast.error("Không tìm thấy sản phẩm");
+            }
+        } catch (error) {
+            console.error("Lỗi lấy sản phẩm:", error);
+            showToast.error("Đã có lỗi xảy ra khi lấy sản phẩm");
+        }
     };
+
+    const fetchProductReviews = async (id, { limit = 5, skip = 0 } = {}) => {
+        try {
+            const response = await reviewService.get_product_review(id, { limit, skip });
+            if (response.isSuccess) {
+                setReviewList(response.data);
+            } else {
+                showToast.error("Không thể lấy đánh giá sản phẩm");
+            }
+        } catch (error) {
+            console.error("Lỗi lấy đánh giá:", error);
+            showToast.error("Đã có lỗi xảy ra khi lấy đánh giá");
+        }
+    };
+
 
     const coupons = [
         { code: 'GIAMSOC500K', discount: '500.000đ', minOrder: '20.000.000đ', validUntil: '30/04/2025' },
         { code: 'MOIHANG10', discount: '10%', minOrder: '5.000.000đ', validUntil: '15/05/2025', maxDiscount: '800.000đ' },
         { code: 'FREESHIP0D', discount: 'Freeship', minOrder: '500.000đ', validUntil: '30/04/2025' }
-    ];
-
-    const shop = {
-        name: 'Samsung Official Store',
-        avatar: '/api/placeholder/100/100',
-        rating: 4.9,
-        followers: 856200,
-        responseRate: 98,
-        responseTime: 'trong 5 phút',
-        address: 'Quận 7, TP. Hồ Chí Minh',
-        joinDate: '15/01/2018',
-        productCount: 342
-    };
-
-    const reviews = [
-        {
-            id: 1,
-            user: { name: 'Nguyễn Văn A', avatar: '/api/placeholder/40/40' },
-            rating: 5,
-            date: '05/04/2025',
-            content: 'Sản phẩm rất tốt, đúng như mô tả. Camera chụp đẹp, pin trâu. Đặc biệt S Pen rất tiện lợi cho công việc của mình. Shop giao hàng nhanh và đóng gói cẩn thận.',
-            images: ['/api/placeholder/200/200', '/api/placeholder/200/200'],
-            helpful: 45,
-            variant: '256GB - Đen'
-        },
-        {
-            id: 2,
-            user: { name: 'Trần Thị B', avatar: '/api/placeholder/40/40' },
-            rating: 4,
-            date: '02/04/2025',
-            content: 'Điện thoại đẹp, chụp hình sắc nét. Chỉ tiếc là pin không được trâu như quảng cáo. Mong shop tư vấn thêm cách tối ưu pin.',
-            images: ['/api/placeholder/200/200'],
-            helpful: 23,
-            variant: '512GB - Xanh'
-        },
-        {
-            id: 3,
-            user: { name: 'Lê Văn C', avatar: '/api/placeholder/40/40' },
-            rating: 5,
-            date: '28/03/2025',
-            content: 'Mua làm quà tặng sinh nhật vợ, vợ rất thích. Màn hình đẹp, camera chụp đêm tốt. Đóng gói cẩn thận, có quà tặng kèm là ốp lưng rất xinh.',
-            helpful: 19,
-            variant: '256GB - Tím'
-        }
     ];
 
     const relatedProducts = Array(8).fill().map((_, i) => ({
@@ -168,65 +128,76 @@ const ProductDetailPage = () => {
                 console.error('Lỗi khi sao chép:', err);
             });
     };
+    const handlePostReview = async (formData) => {
+        try {
+            setLoading(true);
+            formData.append("product_id", id);
+            formData.append("review_type", "product_review");
 
-    // Hiển thị đánh giá sao
-    const renderStars = (rating) => {
-        return Array(5).fill().map((_, i) => (
-            <Star
-                key={i}
-                size={16}
-                className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" :
-                    (i < rating ? "fill-yellow-400 text-yellow-400 opacity-50" : "text-gray-300")}
-            />
-        ));
+            const response = await reviewService.post_product_review(formData);
+
+            if (response.isSuccess) {
+                showToast.success("Đánh giá thành công");
+                await fetchProductReviews(id, { limit: 5, skip: 0 })
+            } else {
+                showToast.error("Lỗi đánh giá sản phẩm");
+            }
+        } catch (error) {
+            console.error("Lỗi đăng đánh giá:", error);
+            showToast.error(error.message);
+        } finally {
+
+            setLoading(false);
+        }
     };
 
-    return (
-        <div className=" mx-auto px-4 py-6">
+    const images = [
+        product?.main_image,
+        ...(product?.additional_images || [])
+    ].map(img => ({
+        original: img,
+        thumbnail: img,
+        originalClass: 'w-full h-full object-contain',
+        thumbnailClass: 'object-cover'
+    })) || [];
+    return product ? (
+        <div className=" mx-auto py-6">
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-6">
                 <a href="/" className="hover:text-blue-600">Trang chủ</a>
                 <ChevronRight size={16} className="mx-2" />
-                <a href="/dien-thoai" className="hover:text-blue-600">Điện thoại</a>
+                <a href="/dien-thoai" className="hover:text-blue-600">Sản phẩm</a>
                 <ChevronRight size={16} className="mx-2" />
-                <a href="/dien-thoai/samsung" className="hover:text-blue-600">Samsung</a>
-                <ChevronRight size={16} className="mx-2" />
-                <span className="text-gray-700 font-medium truncate">{product.name}</span>
+                <a href="/dien-thoai/samsung" className="hover:text-blue-600">{product?.name}</a>
             </div>
 
             {/* Product info section */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Product images */}
-                    <div>
-                        <div className="relative mb-4 rounded-lg overflow-hidden bg-gray-100 aspect-square">
-                            <img
-                                src={product.images[currentImage]}
-                                alt={product.name}
-                                className="w-full h-full object-contain"
-                            />
+                    <div className="w-full mx-auto">
+                        <div className="relative mb-4 rounded-lg overflow-hidden h-fit">
+                            <div className="product-gallery-container aspect-square">
+                                <ImageGallery
+                                    items={images}
+                                    showPlayButton={false}
+                                    showFullscreenButton={false}
+                                    showNav={true}
+                                    thumbnailPosition="bottom"
+                                    useBrowserFullscreen={false}
+                                    additionalClass="aspect-square"
+                                />
+                            </div>
+
+                            {/* Badge giảm giá */}
                             {product.discount > 0 && (
                                 <div className="absolute top-3 left-3 bg-red-600 text-white px-2 py-1 rounded-md text-sm font-bold">
                                     -{product.discount}%
                                 </div>
                             )}
                         </div>
-                        <div className="flex gap-2 overflow-x-auto pb-2">
-                            {product.images.map((img, index) => (
-                                <div
-                                    key={index}
-                                    className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 ${currentImage === index ? 'border-blue-600' : 'border-transparent'
-                                        }`}
-                                    onClick={() => setCurrentImage(index)}
-                                >
-                                    <img
-                                        src={img}
-                                        alt={`Product view ${index + 1}`}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            ))}
-                        </div>
+
+                        {/* Phần nút chia sẻ, yêu thích, hỏi đáp */}
                         <div className="flex justify-center gap-4 mt-4">
                             <button className="flex items-center gap-1 text-sm text-gray-700 hover:text-blue-600">
                                 <Share2 size={18} />
@@ -248,15 +219,25 @@ const ProductDetailPage = () => {
                         <h1 className="text-2xl font-bold text-gray-800 mb-3">{product.name}</h1>
 
                         <div className="flex items-center gap-4 mb-3">
-                            <div className="flex items-center">
-                                <span className="font-bold text-lg text-red-600 mr-2">{product.rating}</span>
-                                <div className="flex">{renderStars(product.rating)}</div>
+                            <div className="flex items-center ">
+                                <span className="font-bold text-lg text-red-600 mr-2 flex items-center top-[3px] relative">
+                                    {product.average_rating}
+                                </span>
+                                <Rating
+                                    initialValue={product.average_rating}
+                                    size={20}
+                                    allowFraction
+                                    readonly
+                                    SVGstyle={{ display: 'inline-block' }}
+                                    fillColor="#facc15" // Màu vàng
+                                    emptyColor="#e5e7eb" // Màu xám nhạt
+                                />
                             </div>
                             <div className="text-sm text-gray-600 border-l border-gray-300 pl-4">
-                                <span>{product.reviewCount} đánh giá</span>
+                                <span>{product.total_reviews} đánh giá</span>
                             </div>
                             <div className="text-sm text-gray-600 border-l border-gray-300 pl-4">
-                                <span>{product.soldCount} đã bán</span>
+                                <span>{product.quantitySold} đã bán</span>
                             </div>
                         </div>
 
@@ -271,41 +252,25 @@ const ProductDetailPage = () => {
                             )}
                         </div>
 
-                        {/* Variants */}
-                        <div className="mb-6">
-                            <div className="text-sm font-medium text-gray-700 mb-2">Phiên bản:</div>
-                            <div className="flex flex-wrap gap-2">
-                                {product.variants.map((variant, index) => (
-                                    <div
-                                        key={index}
-                                        className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${variant.price === product.price
-                                            ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                            : 'border-gray-300 hover:border-blue-300'
-                                            }`}
-                                    >
-                                        <div className="font-medium">{variant.name}</div>
-                                        <div className="text-xs mt-1">{formatCurrency(variant.price)}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
                         {/* Colors */}
                         <div className="mb-6">
                             <div className="text-sm font-medium text-gray-700 mb-2">Màu sắc:</div>
-                            <div className="flex flex-wrap gap-2">
-                                {product.colors.map((color, index) => (
-                                    <div
-                                        key={index}
-                                        className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
-                                            ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                            : 'border-gray-300 hover:border-blue-300'
-                                            }`}
-                                    >
-                                        {color}
-                                    </div>
-                                ))}
-                            </div>
+                            {!!product?.colors && product?.colors?.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {product.colors?.map((color, index) => (
+                                        <div
+                                            key={index}
+                                            className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
+                                                ? 'border-blue-600 bg-blue-50 text-blue-600'
+                                                : 'border-gray-300 hover:border-blue-300'
+                                                }`}
+                                        >
+                                            {color}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                         </div>
 
                         {/* Quantity */}
@@ -332,7 +297,7 @@ const ProductDetailPage = () => {
                                     +
                                 </button>
                                 <span className="ml-3 text-sm text-gray-600">
-                                    {product.stockStatus}
+                                    {product.stock > 0 ? "Còn hàng" : "Hết hàng"}
                                 </span>
                             </div>
                         </div>
@@ -424,34 +389,42 @@ const ProductDetailPage = () => {
                     <div className="flex items-center gap-6">
                         <div className="w-20 h-20 rounded-full overflow-hidden">
                             <img
-                                src={shop.avatar}
-                                alt={shop.name}
+                                src={store.store_logo}
+                                alt={store.name}
                                 className="w-full h-full object-cover"
                             />
                         </div>
                         <div className="flex-grow">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1">{shop.name}</h3>
-                            <div className="flex items-center gap-6 mb-2">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1">{store.store_name}</h3>
+                            <div className="flex items-end gap-6 mb-2">
                                 <div className="flex items-center">
-                                    <div className="flex mr-1">{renderStars(shop.rating)}</div>
-                                    <span className="text-sm text-gray-600">{shop.rating}</span>
+                                    <Rating
+                                        initialValue={store.average_rating}
+                                        size={20}
+                                        allowFraction
+                                        readonly
+                                        SVGstyle={{ display: 'inline-block' }}
+                                        fillColor="#facc15" // Màu vàng
+                                        emptyColor="#e5e7eb" // Màu xám nhạt
+                                    />
+                                    <span className="text-sm text-gray-600 top-[3px] relative ml-2">{store.average_rating || 0}</span>
                                 </div>
                                 <div className="text-sm text-gray-600">
-                                    <span className="font-medium">{shop.followers.toLocaleString()}</span> người theo dõi
+                                    <span className="font-medium">{store?.followers?.toLocaleString() || 0}</span> người theo dõi
                                 </div>
                             </div>
                             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                                 <div className="flex items-center gap-1">
                                     <Store size={16} className="text-gray-500" />
-                                    <span>{shop.productCount} sản phẩm</span>
+                                    <span>{store.totalProduct} sản phẩm</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <MapPin size={16} className="text-gray-500" />
-                                    <span>{shop.address}</span>
+                                    <span>{store.address}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <MessageCircle size={16} className="text-gray-500" />
-                                    <span>Phản hồi {shop.responseRate}% trong {shop.responseTime}</span>
+                                    <span>Phản hồi trong 5 phút</span>
                                 </div>
                             </div>
                         </div>
@@ -498,14 +471,10 @@ const ProductDetailPage = () => {
                             dangerouslySetInnerHTML={{ __html: product.description }}
                         />
                     ) : (
-                        <div className="divide-y divide-gray-200">
-                            {product.specifications.map((spec, index) => (
-                                <div key={index} className="py-3 grid grid-cols-3">
-                                    <div className="text-sm text-gray-600">{spec.name}</div>
-                                    <div className="col-span-2 text-sm whitespace-pre-line">{spec.value}</div>
-                                </div>
-                            ))}
-                        </div>
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: product.specifications }}
+                        />
                     )}
                 </div>
             </div>
@@ -514,23 +483,47 @@ const ProductDetailPage = () => {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 className="text-lg font-medium text-gray-800">Đánh giá từ khách hàng</h2>
-                    <button className="text-sm text-blue-600 hover:underline">
-                        Xem tất cả ({product.reviewCount})
-                    </button>
                 </div>
 
                 <div className="p-6">
                     {/* Summary */}
                     <div className="flex bg-blue-50 rounded-lg p-4 mb-6">
                         <div className="flex-1 flex flex-col items-center justify-center border-r border-blue-100">
-                            <div className="text-3xl font-bold text-blue-600 mb-1">{product.rating}/5</div>
-                            <div className="flex mb-1">{renderStars(product.rating)}</div>
-                            <div className="text-sm text-gray-600">{product.reviewCount} đánh giá</div>
+                            <div className="text-3xl font-bold text-blue-600 mb-1">{product.average_rating}/5</div>
+                            <div className="flex mb-1">
+                                <Rating
+                                    initialValue={product.average_rating}
+                                    size={20}
+                                    allowFraction
+                                    readonly
+                                    SVGstyle={{ display: 'inline-block' }}
+                                    fillColor="#facc15" // Màu vàng
+                                    emptyColor="#e5e7eb" // Màu xám nhạt
+                                />
+                            </div>
+                            <div className="text-sm text-gray-600">{product.total_reviews} đánh giá</div>
                         </div>
                         <div className="flex-1 pl-6">
                             <div className="space-y-2">
                                 {[5, 4, 3, 2, 1].map(star => {
-                                    const percentage = star === 5 ? 75 : star === 4 ? 20 : star === 3 ? 4 : star === 2 ? 1 : 0;
+                                    const totalReviewCount =
+                                        reviewList.count1Star +
+                                        reviewList.count2Star +
+                                        reviewList.count3Star +
+                                        reviewList.count4Star +
+                                        reviewList.count5Star;
+
+                                    const reviewCounts = {
+                                        5: reviewList.count5Star || 0,
+                                        4: reviewList.count4Star || 0,
+                                        3: reviewList.count3Star || 0,
+                                        2: reviewList.count2Star || 0,
+                                        1: reviewList.count1Star || 0,
+                                    };
+                                    const count = reviewCounts[star];
+                                    const percentage = totalReviewCount
+                                        ? Math.round((count / totalReviewCount) * 100)
+                                        : 0;
                                     return (
                                         <div key={star} className="flex items-center text-sm">
                                             <div className="flex items-center w-16">
@@ -556,40 +549,74 @@ const ProductDetailPage = () => {
                         <button className="px-3 py-1 bg-blue-100 text-blue-600 text-sm rounded-full">
                             Tất cả
                         </button>
-                        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
-                            5 Sao (190)
-                        </button>
-                        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
-                            4 Sao (50)
-                        </button>
-                        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
-                            3 Sao (10)
-                        </button>
-                        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
-                            Có hình ảnh (87)
-                        </button>
+                        {!!reviewList.count5Star && reviewList.count5Star > 0 && (
+                            <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
+                                5 Sao ({reviewList.count5Star})
+                            </button>
+                        )}
+                        {!!reviewList.count4Star && reviewList.count4Star > 0 && (
+                            <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
+                                4 Sao ({reviewList.count4Star})
+                            </button>
+                        )}
+                        {!!reviewList.count3Star && reviewList.count3Star > 0 && (
+                            <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
+                                3 Sao ({reviewList.count3Star})
+                            </button>
+                        )}
+                        {!!reviewList.count2Star && reviewList.count2Star > 0 && (
+                            <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
+                                2 Sao ({reviewList.count2Star})
+                            </button>
+                        )}
+                        {!!reviewList.count1Star && reviewList.count1Star > 0 && (
+                            <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full">
+                                1 Sao ({reviewList.count1Star})
+                            </button>
+                        )}
                     </div>
 
                     {/* Review list */}
                     <div className="space-y-6">
-                        {reviews.map(review => (
-                            <div key={review.id} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+                        <button
+                            className="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                            onClick={() => setIsModalReviewOpen(true)}
+                        >
+                            Viết đánh giá
+                        </button>
+
+                        <ReviewModal
+                            visible={isModalReviewOpen}
+                            onClose={() => setIsModalReviewOpen(false)}
+                            onSubmit={handlePostReview}
+                        />
+                        {reviewList?.reviewList?.map(review => (
+                            <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden">
                                         <img
-                                            src={review.user.avatar}
-                                            alt={review.user.name}
+                                            src={review.customer_id.avatar}
+                                            alt={review.customer_id.fullName}
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
                                     <div>
-                                        <div className="font-medium text-gray-800">{review.user.name}</div>
+                                        <div className="font-medium text-gray-800">{review.customer_id.fullName}</div>
                                         <div className="flex items-center gap-2 text-sm text-gray-500">
-                                            <div className="flex">{renderStars(review.rating)}</div>
+                                            <div className="flex">
+                                                <Rating
+                                                    initialValue={review.rating}
+                                                    size={20}
+                                                    allowFraction
+                                                    readonly
+                                                    SVGstyle={{ display: 'inline-block' }}
+                                                    fillColor="#facc15" // Màu vàng
+                                                    emptyColor="#e5e7eb" // Màu xám nhạt
+                                                />
+                                            </div>
                                             <span>|</span>
-                                            <span>{review.date}</span>
+                                            <span>{formatDateTime(review.created_at)}</span>
                                             <span>|</span>
-                                            <span>{review.variant}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -612,7 +639,7 @@ const ProductDetailPage = () => {
 
                                 <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
                                     <ThumbsUp size={14} />
-                                    <span>Hữu ích ({review.helpful})</span>
+                                    <span>Hữu ích ({review.helpful || 0})</span>
                                 </button>
                             </div>
                         ))}
@@ -667,7 +694,7 @@ const ProductDetailPage = () => {
                 <ChevronLeft size={24} className="rotate-90" />
             </button>
         </div>
-    );
+    ) : null;
 };
 
 export default ProductDetailPage;

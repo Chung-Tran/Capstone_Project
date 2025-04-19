@@ -3,22 +3,7 @@ import { ChevronRight, TrendingUp, Heart, Clock, ThumbsUp, ShoppingBag, ChevronL
 import ProductCardItem from '../components/product/ProductCard';
 import CarouselList from '../components/CarouselList';
 import { formatCurrency } from '../common/methodsCommon';
-// Category card component
-const CategoryCard = ({ category }) => {
-    return (
-        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-16 h-16 rounded-full overflow-hidden mb-2">
-                <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                />
-            </div>
-            <span className="text-sm font-medium text-center">{category.name}</span>
-        </div>
-    );
-};
-
+import { useDispatch, useSelector } from 'react-redux';
 // Horizontal product card for recently viewed
 const HorizontalProductCard = ({ product }) => {
     // Format giá theo VND
@@ -52,10 +37,9 @@ const HorizontalProductCard = ({ product }) => {
     );
 };
 
-
-
 // Main component - For You Page
 const ForYouPage = () => {
+    const { isAuthenticated, userRole, user, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
     // Demo data
     const trendingProducts = Array(10).fill().map((_, i) => ({
         id: `trending-${i + 1}`,
@@ -88,20 +72,6 @@ const ForYouPage = () => {
         stockStatus: "Còn hàng",
         soldCount: 150 + Math.floor(Math.random() * 800)
     }));
-
-    const favoriteCategories = [
-        { id: 1, name: "Điện thoại", image: "/api" },
-        { id: 2, name: "Laptop", image: "/api" },
-        { id: 3, name: "Thời trang nam", image: "/api" },
-        { id: 4, name: "Thời trang nữ", image: "/api" },
-        { id: 5, name: "Giày dép", image: "/api" },
-        { id: 6, name: "Đồng hồ", image: "/api" },
-        { id: 7, name: "Sách", image: "/api" },
-        { id: 8, name: "Nhà cửa", image: "/api" },
-        { id: 9, name: "Đồ điện tử", image: "/api" },
-        { id: 10, name: "Mỹ phẩm", image: "/api" },
-    ];
-
     const recentlyViewed = Array(5).fill().map((_, i) => ({
         id: `recent-${i + 1}`,
         name: `Sản phẩm đã xem gần đây ${i + 1}`,
@@ -116,34 +86,24 @@ const ForYouPage = () => {
 
     return (
         <div className=" mx-auto px-4 py-6">
-            {/* Welcome header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 mb-8 text-white">
-                <h1 className="text-2xl font-bold mb-2">Chào Minh Nhật 👋</h1>
-                <p className="opacity-90 mb-4">Khám phá các sản phẩm được cá nhân hóa dành riêng cho bạn hôm nay.</p>
-                <div className="flex gap-3">
-                    <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm shadow-md flex items-center gap-1">
-                        <ShoppingBag size={16} />
-                        Đơn hàng của tôi
-                    </button>
-                    <button className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
-                        <Heart size={16} />
-                        Danh sách yêu thích
-                    </button>
-                </div>
-            </div>
-
-            {/* Favorite categories */}
-            <CarouselList
-                title="Danh mục yêu thích"
-                icon={<Heart size={18} />}
-                viewAll="/categories"
-            >
-                {favoriteCategories.map(category => (
-                    <div key={category.id} className="flex-shrink-0 w-24">
-                        <CategoryCard category={category} />
+            {
+                isAuthenticated && (
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 mb-8 text-white">
+                        <h1 className="text-2xl font-bold mb-2">Chào {user.name} 👋</h1>
+                        <p className="opacity-90 mb-4">Khám phá các sản phẩm được cá nhân hóa dành riêng cho bạn hôm nay.</p>
+                        <div className="flex gap-3">
+                            <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm shadow-md flex items-center gap-1">
+                                <ShoppingBag size={16} />
+                                Đơn hàng của tôi
+                            </button>
+                            <button className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <Heart size={16} />
+                                Danh sách yêu thích
+                            </button>
+                        </div>
                     </div>
-                ))}
-            </CarouselList>
+                )
+            }
 
             {/* Trending products */}
             <CarouselList

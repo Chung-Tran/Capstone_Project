@@ -3,22 +3,24 @@ const mongoose = require('mongoose');
 const Product = require('../models/product.model');
 const Store = require('../models/store.model');
 const Category = require('../models/category.model');
+const Review = require('../models/review.model');
 const formatResponse = require('../middlewares/responseFormat');
+const { uploadImage } = require('../services/uploadService');
 
 const createProduct = asyncHandler(async (req, res) => {
     const {
         category_id,
+        product_code,
         name,
         price,
         description,
-        variants,
         original_price,
         tags,
-        main_image,
-        additional_images,
         status,
         weight,
-        dimensions
+        dimensions,
+        stock,
+        is_featured
     } = req.body;
 
     // Validation
@@ -26,17 +28,17 @@ const createProduct = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Tên sản phẩm và giá bán là bắt buộc');
     }
-
+    console.log("process.env.CLOUDINARY_API_KEY", process.env.CLOUDINARY_API_KEY)
     const store = await Store.findOne({ owner_id: req.user._id });
     if (!store) {
         res.status(404);
         throw new Error('Không tìm thấy cửa hàng');
     }
     const store_id = store._id;
-
-    // Tạo product_code
-    const productCount = await Product.countDocuments();
-    const product_code = `PROD-${(productCount + 1).toString().padStart(3, '0')}`;
+    const productCodeInvalid = await Product.findOne({ product_code: product_code, store_id: store_id })
+    if (productCodeInvalid) {
+        res.status(400).json(formatResponse(false, null, 'Mã sản phẩm đã tồn tại'));
+    }
 
     // Kiểm tra category_id
     let validCategoryIds = [];
@@ -55,20 +57,13 @@ const createProduct = asyncHandler(async (req, res) => {
             throw new Error('Một số danh mục không tồn tại hoặc không hoạt động');
         }
     }
-
-    // Kiểm tra variants
-    let total_stock_quantity = 0;
-    let validVariants = [];
-    if (variants && Array.isArray(variants)) {
-        validVariants = variants.map(v => ({
-            variants_name: v.variants_name || `SKU-${Math.random().toString(36).substr(2, 9)}`,
-            variants_stock_quantity: Number(v.variants_stock_quantity) || 0,
-            attributes: v.attributes || {}
-        }));
-        total_stock_quantity = validVariants.reduce(
-            (sum, v) => sum + v.variants_stock_quantity,
-            0
-        );
+    let main_image = null;
+    let additional_images = null;
+    if (req.files && req.files.main_image && req.files.main_image?.length > 0) {
+        main_image = await uploadImage(req.files.main_image[0]);
+    }
+    if (req.files && req.files.additional_images && req.files.additional_images?.length > 0) {
+        additional_images = await uploadImage(req.files.additional_images);
     }
 
     const product = await Product.create({
@@ -78,15 +73,15 @@ const createProduct = asyncHandler(async (req, res) => {
         name,
         price: Number(price),
         description,
-        variants: validVariants,
-        total_stock_quantity,
         original_price: original_price ? Number(original_price) : undefined,
         tags: tags ? tags : [],
         main_image,
         additional_images: additional_images || [],
         status: status || 'active',
         weight: weight ? Number(weight) : undefined,
-        dimensions: dimensions || {}
+        dimensions: dimensions || {},
+        stock,
+        is_featured: is_featured
     });
 
     if (product) {
@@ -97,7 +92,6 @@ const createProduct = asyncHandler(async (req, res) => {
             price: product.price,
             store_id: product.store_id,
             category_id: product.category_id,
-            variants: product.variants
         }, 'Product created successfully'));
     } else {
         res.status(400);
@@ -143,10 +137,38 @@ const getProductById = asyncHandler(async (req, res) => {
 
     const product = await Product.findById(req.params.id)
         .populate('category_id')
-        .populate('store_id');
 
     if (product) {
-        res.json(formatResponse(true, product, 'Product retrieved successfully'));
+        const reviews = await Review.find({ product_id: req.params.id, review_type: 'product_review' });
+        const shopReviews = await Review.find({ product_id: req.params.id, review_type: 'shop_review' });
+
+        const totalReviews = reviews.length;
+        const totalShopReviews = shopReviews.length;
+        const shop = await Store.findOne({ _id: product.store_id }).lean();
+        shop.totalProduct = await Product.countDocuments({ status: 'active', store_id: product.store_id });
+
+        let averageRating = 0;
+        if (totalReviews > 0) {
+            const sumRatings = reviews.reduce((sum, review) => sum + review.rating, 0);
+            averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+        }
+        if (totalShopReviews > 0) {
+            const sumRatings = shopReviews.reduce((sum, review) => sum + review.rating, 0);
+            averageRating = parseFloat((sumRatings / totalShopReviews).toFixed(1));
+            shop.total_reviews = totalShopReviews;
+            shop.average_rating = averageRating;
+
+        }
+
+
+        const response = {
+            ...product._doc,
+            average_rating: averageRating,
+            total_reviews: totalReviews,
+            store_info: shop,
+        };
+
+        res.json(formatResponse(true, response, 'Product retrieved successfully'));
     } else {
         res.status(404);
         throw new Error('Không tìm thấy sản phẩm');
@@ -160,61 +182,70 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
 
     const product = await Product.findById(req.params.id);
-
-    if (product) {
-        product.name = req.body.name || product.name;
-        product.price = req.body.price || product.price;
-        product.description = req.body.description || product.description;
-
-        if (req.body.category_id && Array.isArray(req.body.category_id)) {
-            const validCategoryIds = req.body.category_id.filter(id => mongoose.isValidObjectId(id));
-            const existingCategories = await Category.find({
-                _id: { $in: validCategoryIds },
-                status: 'active'
-            });
-            if (existingCategories.length !== validCategoryIds.length) {
-                res.status(400);
-                throw new Error('Một số danh mục không tồn tại hoặc không hoạt động');
-            }
-            product.category_id = validCategoryIds;
-        }
-
-        if (req.body.variants && Array.isArray(req.body.variants)) {
-            product.variants = req.body.variants.map(v => ({
-                variants_name: v.variants_name || `SKU-${Math.random().toString(36).substr(2, 9)}`,
-                variants_stock_quantity: Number(v.variants_stock_quantity) || 0,
-                attributes: v.attributes || {}
-            }));
-            product.total_stock_quantity = product.variants.reduce(
-                (sum, v) => sum + v.variants_stock_quantity,
-                0
-            );
-        }
-
-        product.original_price = req.body.original_price ? Number(req.body.original_price) : product.original_price;
-        product.tags = req.body.tags ? req.body.tags : product.tags;
-        product.main_image = req.body.main_image || product.main_image;
-        product.additional_images = req.body.additional_images || product.additional_images;
-        product.status = req.body.status || product.status;
-        product.weight = req.body.weight ? Number(req.body.weight) : product.weight;
-        product.dimensions = req.body.dimensions || product.dimensions;
-
-        const updatedProduct = await product.save();
-
-        res.json(formatResponse(true, {
-            _id: updatedProduct._id,
-            name: updatedProduct.name,
-            price: updatedProduct.price,
-            category_id: updatedProduct.category_id,
-            variants: updatedProduct.variants,
-            total_stock_quantity: updatedProduct.total_stock_quantity,
-            status: updatedProduct.status
-        }, 'Product updated successfully'));
-    } else {
+    if (!product) {
         res.status(404);
         throw new Error('Không tìm thấy sản phẩm');
     }
+
+    // === Update basic fields ===
+    product.name = req.body.name || product.name;
+    product.price = req.body.price || product.price;
+    product.description = req.body.description || product.description;
+    product.original_price = req.body.original_price ? Number(req.body.original_price) : product.original_price;
+    product.tags = req.body.tags ? (
+        typeof req.body.tags === 'string' ? req.body.tags.split(',').map(t => t.trim()) : req.body.tags
+    ) : product.tags;
+    product.status = req.body.status || product.status;
+    product.weight = req.body.weight ? Number(req.body.weight) : product.weight;
+    product.dimensions = req.body.dimensions || product.dimensions;
+    product.stock = req.body.stock || product.stock;
+    product.is_featured = req.body.is_featured === 'true' ? true : req.body.is_featured === 'false' ? false : product.is_featured;
+
+    // === Update category ===
+    if (req.body.category_id && Array.isArray(req.body.category_id)) {
+        const validCategoryIds = req.body.category_id.filter(id => mongoose.isValidObjectId(id));
+        const existingCategories = await Category.find({
+            _id: { $in: validCategoryIds },
+            status: 'active'
+        });
+        if (existingCategories.length !== validCategoryIds.length) {
+            res.status(400);
+            throw new Error('Một số danh mục không tồn tại hoặc không hoạt động');
+        }
+        product.category_id = validCategoryIds;
+    }
+
+    // === Handle main image ===
+    if (req.files?.main_image) {
+        const uploaded = await uploadImage(req.files.main_image[0]);
+        product.main_image = uploaded;
+    } else if (req.body.main_image_url) {
+        product.main_image = req.body.main_image_url;
+    } else if (req.body.main_image_removed === 'true') {
+        product.main_image = null;
+    }
+
+    // === Handle additional images ===
+    const keptUrls = req.body.kept_additional_image_urls || [];
+    const keptArray = Array.isArray(keptUrls) ? keptUrls : [keptUrls];
+
+    const newImageFiles = req.files?.new_additional_images || [];
+    const newImages = newImageFiles.length > 0 ? await uploadImage(newImageFiles) : [];
+
+    product.additional_images = [...keptArray, ...newImages];
+
+    const updatedProduct = await product.save();
+
+    res.json(formatResponse(true, {
+        _id: updatedProduct._id,
+        name: updatedProduct.name,
+        price: updatedProduct.price,
+        category_id: updatedProduct.category_id,
+        total_stock_quantity: updatedProduct.total_stock_quantity,
+        status: updatedProduct.status
+    }, 'Product updated successfully'));
 });
+
 
 const deleteProduct = asyncHandler(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -246,6 +277,37 @@ const getProductByStoreId = asyncHandler(async (req, res) => {
 
     res.status(200).json(formatResponse(true, products, "Lấy sản phẩm thành công"));
 });
+const getProductFeatured = asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = parseInt(req.query.skip) || 0;
+        const products = await Product.find({
+            is_featured: true,
+            status: "active"
+        }).sort({ quantitySold: -1, averageRating: -1 }) // sắp xếp sản phẩm nổi bật theo giá SL bán và đánh giá giảm dần
+            .skip(skip)
+            .limit(limit);
+
+        res.status(200).json(formatResponse(true, products, "Lấy sản phẩm nổi bật thành công"));
+    } catch (err) {
+        res.status(500).json(formatResponse(false, null, "Lỗi server"));
+    }
+});
+const getProductNew = asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = parseInt(req.query.skip) || 0;
+        const products = await Product.find({
+            status: "active"
+        }).sort({ createdAt: -1 }) // sắp xếp sản phẩm mới tạo
+            .skip(skip)
+            .limit(limit);
+
+        res.status(200).json(formatResponse(true, products, "Lấy sản phẩm nổi bật thành công"));
+    } catch (err) {
+        res.status(500).json(formatResponse(false, null, "Lỗi server"));
+    }
+});
 
 module.exports = {
     ProductController: {
@@ -254,6 +316,8 @@ module.exports = {
         getProductById,
         updateProduct,
         deleteProduct,
-        getProductByStoreId
+        getProductByStoreId,
+        getProductFeatured,
+        getProductNew,
     }
 };

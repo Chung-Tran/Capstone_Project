@@ -92,8 +92,8 @@ const Header = () => {
 
                         {/* Logo */}
                         <Link to="/" className="flex items-center space-x-2">
-                            <img src="/logo.svg" alt="Logo" className="h-8 w-auto" />
-                            <span className="text-xl font-bold text-gray-800 hidden sm:block">ShopMart</span>
+                            <img src="/logo.png" alt="Logo" className="h-12 w-auto" />
+                            {/* <span className="text-xl font-bold text-gray-800 hidden sm:block">ShopMart</span> */}
                         </Link>
 
                         {/* Desktop Navigation */}

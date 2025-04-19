@@ -1,5 +1,5 @@
 import React from 'react';
-import { Timer, ChevronRight } from 'lucide-react';
+import { Timer, ChevronRight, Clock } from 'lucide-react';
 
 const FlashSale = () => {
     const flashSaleProducts = [
@@ -27,18 +27,23 @@ const FlashSale = () => {
     return (
         <section className="py-12 bg-red-50">
             <div className="container mx-auto px-4">
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-3xl font-bold text-primary">Flash Sale</h2>
-                        <div className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-full">
-                            <Timer className="h-5 w-5" />
-                            <span className="font-medium">05:23:45</span>
-                        </div>
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                        <div className="w-1 h-8 bg-red-600 rounded-full mr-3"></div>
+                        <h2 className="text-3xl font-bold text-gray-800 flex items-center">
+                            Flash Sale
+                            <Clock className="ml-3 text-red-600 h-6 w-6" />
+                        </h2>
                     </div>
-                    <button className="flex items-center text-primary hover:text-accent">
-                        Xem tất cả
-                        <ChevronRight className="h-5 w-5 ml-1" />
-                    </button>
+                    <div className="flex items-center">
+                        <div className="mr-4 text-gray-700">
+                            Kết thúc trong: <span className="bg-red-600 text-white font-mono px-2 py-1 rounded ml-2">08:15:45</span>
+                        </div>
+                        <button className="text-red-600 hover:text-red-700 font-medium flex items-center group">
+                            Xem tất cả
+                            <ChevronRight className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
