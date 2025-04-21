@@ -34,6 +34,8 @@ import TransactionHistory from './pages/account/TransactionHistory';
 import ShoppingCart from './pages/CartPage';
 import Wishlist from './pages/Wishlist';
 import StorePage from './pages/StorePage';
+import VoucherManager from './pages/seller/VoucherManager';
+import FlashSaleRegister from './pages/seller/FlashSaleRegister';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -91,7 +93,9 @@ const AppRoutes = () => {
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="shop" element={<ShopManagement />} />
+            <Route path="vouchers" element={<VoucherManager />} />
             <Route path="products" element={<ProductsManager />} />
+            <Route path="flashsale" element={<FlashSaleRegister />} />
             <Route path="orders" element={<Orders />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="messages" element={<Messages />} />

@@ -13,7 +13,9 @@ const createProduct = asyncHandler(async (req, res) => {
         product_code,
         name,
         price,
+        colors,
         description,
+        specifications,
         original_price,
         tags,
         status,
@@ -73,9 +75,11 @@ const createProduct = asyncHandler(async (req, res) => {
         name,
         price: Number(price),
         description,
+        specifications,
         original_price: original_price ? Number(original_price) : undefined,
         tags: tags ? tags : [],
         main_image,
+        colors,
         additional_images: additional_images || [],
         status: status || 'active',
         weight: weight ? Number(weight) : undefined,
@@ -94,7 +98,7 @@ const createProduct = asyncHandler(async (req, res) => {
             category_id: product.category_id,
         }, 'Product created successfully'));
     } else {
-        res.status(400);
+        res.status(400)
         throw new Error('Không thể tạo sản phẩm');
     }
 });

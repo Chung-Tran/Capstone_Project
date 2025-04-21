@@ -5,6 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 router.post('/', authMiddleware, PromotionController.createPromotion);
 router.get('/', PromotionController.getPromotions);
+router.get('/:id', PromotionController.getPromotionsById);
 router.put('/:id', authMiddleware, PromotionController.updatePromotion);
 router.delete('/:id', authMiddleware, PromotionController.deletePromotion);
 
