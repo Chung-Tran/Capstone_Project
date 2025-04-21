@@ -10,6 +10,7 @@ const reviewRoutes = require('./review.routes');
 const promotionRoutes = require('./promotion.routes');
 const notificationRoutes = require('./notification.routes');
 const customerItemsRoutes = require('./customerItems.routes');
+const flashSaleRoutes = require('./flashSale.routes');
 
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
@@ -17,7 +18,9 @@ router.use('/customers', customerRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/orders', orderRoutes);
 router.use('/reviews', reviewRoutes);
-router.use('/promotions', promotionRoutes);
+router.use('/vouchers', promotionRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/customer-items', customerItemsRoutes);
+router.use('/flash-sales', flashSaleRoutes);
+
 module.exports = router;

@@ -23,6 +23,11 @@ const productSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    specifications: String,
+    price: {
+        type: Number,
+        required: true
+    },
     original_price: Number,
     stock: Number,
     quantitySold: {
@@ -43,6 +48,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
+    },
+    colors: {
+        type: [String],
+        required: true
     },
     is_featured: {
         type: Boolean,
