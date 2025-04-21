@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { jwtDecode } from "jwt-decode";
 import authService from '../../services/auth.service';
+import { max } from 'lodash';
 
 // Tạo async thunk để xử lý logic bất đồng bộ
 export const restoreSession = createAsyncThunk(
@@ -79,7 +80,19 @@ const authSlice = createSlice({
             // Chỉ xóa token và role
             localStorage.removeItem('token');
             localStorage.removeItem('role');
-        }
+        },
+        incrementCartCount: (state) => {
+            state.cartCount += 1;
+        },
+        decrementCartCount: (state) => {
+            state.cartCount = Math.max(0, (state.cartCount || 0) - 1);
+        },
+        incrementWishlistCount: (state) => {
+            state.wishlistCount += 1;
+        },
+        decrementWishlistCount: (state) => {
+            state.wishlistCount = Math.max(0, (state.wishlistCount || 0) - 1);
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -105,6 +118,6 @@ const authSlice = createSlice({
     }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, incrementCartCount, incrementWishlistCount, decrementCartCount, decrementWishlistCount } = authSlice.actions;
 
 export default authSlice.reducer;

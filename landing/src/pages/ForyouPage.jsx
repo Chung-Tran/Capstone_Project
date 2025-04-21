@@ -89,7 +89,7 @@ const ForYouPage = () => {
             {
                 isAuthenticated && (
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 mb-8 text-white">
-                        <h1 className="text-2xl font-bold mb-2">Chào {user.name} 👋</h1>
+                        <h1 className="text-2xl font-bold mb-2">Chào {user.fullName} 👋</h1>
                         <p className="opacity-90 mb-4">Khám phá các sản phẩm được cá nhân hóa dành riêng cho bạn hôm nay.</p>
                         <div className="flex gap-3">
                             <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm shadow-md flex items-center gap-1">

@@ -10,13 +10,16 @@ import { showToast } from '../utils/toast';
 import { useLoading } from '../utils/useLoading';
 import FlashSale from '../components/FlashSale';
 import HeroSection from '../components/HeroSection';
+import customerItemsService from '../services/customerItems.service';
+import { useDispatch, useSelector } from 'react-redux';
+import { incrementCartCount, incrementWishlistCount } from '../store/slices/authSlice';
 
 const ProductCard = ({ product, type = "default" }) => {
     const discount = product.discount || Math.floor(Math.random() * 30);
     const discountedPrice = product.price * (1 - discount / 100);
     const ratings = product.rating || (Math.random() * 2 + 3).toFixed(1);
     const sold = Math.floor(Math.random() * 500) + 50;
-
+    const dispatch = useDispatch()
     const typeStyles = {
         featured: {
             badge: "bg-blue-600",
@@ -43,14 +46,31 @@ const ProductCard = ({ product, type = "default" }) => {
             hoverBorder: "group-hover:border-gray-400"
         }
     };
-
     const style = typeStyles[type] || typeStyles.default;
 
+    const handleAddItem = async (itemType) => {
+        try {
+            await customerItemsService.addItem({
+                product_id: product._id,
+                type: itemType,
+                quantity: itemType === 'cart' ? 1 : undefined
+            });
+            if (itemType == 'cart') {
+                dispatch(incrementCartCount());
+            } else {
+                dispatch(incrementWishlistCount());
+            }
+            showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+        } catch (error) {
+            console.log(error)
+            showToast.error(error.message || 'Đã xảy ra lỗi');
+        }
+    };
     return (
         <div className={`group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 ${style.hoverBorder}`}>
             <div className="relative overflow-hidden">
                 <img
-                    src={product.images?.[0] || "https://via.placeholder.com/300"}
+                    src={product.main_image}
                     alt={product.name}
                     className="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-500"
                 />
@@ -67,10 +87,14 @@ const ProductCard = ({ product, type = "default" }) => {
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
                     <div className="flex space-x-2">
-                        <button className="bg-white p-2 rounded-full shadow hover:bg-gray-100 transition-colors">
+                        <button className="bg-white p-2 rounded-full shadow hover:bg-gray-100 transition-colors"
+                            onClick={() => handleAddItem('cart')}
+                        >
                             <ShoppingCart className="h-5 w-5 text-gray-800" />
                         </button>
-                        <button className="bg-white p-2 rounded-full shadow hover:bg-gray-100 transition-colors">
+                        <button className="bg-white p-2 rounded-full shadow hover:bg-gray-100 transition-colors"
+                            onClick={() => handleAddItem('wishlist')}
+                        >
                             <Heart className="h-5 w-5 text-gray-800" />
                         </button>
                     </div>
@@ -104,7 +128,9 @@ const ProductCard = ({ product, type = "default" }) => {
                             </span>
                         )}
                     </div>
-                    <button className="w-full text-black py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-100">
+                    <button className="w-full text-black py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-100"
+                        onClick={() => handleAddItem('cart')}
+                    >
                         <ShoppingCart size={16} className="mr-1" />
                         Thêm vào giỏ
                     </button>
