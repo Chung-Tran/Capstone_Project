@@ -64,13 +64,8 @@ const getProductReviews = asyncHandler(async (req, res) => {
         count2Star,
         count1Star,
     };
+    res.json(formatResponse(true, response, 'Reviews retrieved successfully'));
 
-    if (reviews.length > 0) {
-        res.json(formatResponse(true, response, 'Reviews retrieved successfully'));
-    } else {
-        res.status(404);
-        throw new Error('No reviews found');
-    }
 });
 
 const updateReview = asyncHandler(async (req, res) => {

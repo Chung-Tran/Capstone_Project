@@ -1,78 +1,87 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart, ShoppingCart, Trash2, ChevronLeft, Eye, Share2, AlertCircle } from 'lucide-react';
+import customerItemsService from '../services/customerItems.service';
+import { showToast } from '../utils/toast';
+import { useLoading } from '../utils/useLoading';
+import { useDispatch } from 'react-redux';
+import { decrementCartCount, decrementWishlistCount, incrementCartCount } from '../store/slices/authSlice';
 
 export default function Wishlist() {
-    const [wishlistItems, setWishlistItems] = useState([
-        {
-            id: 1,
-            name: "Áo Khoác Bomber Unisex",
-            price: 850000,
-            originalPrice: 1050000,
-            discount: 19,
-            image: "/api/placeholder/180/220",
-            inStock: true,
-            rating: 4.5,
-            reviews: 128
-        },
-        {
-            id: 2,
-            name: "Túi Xách Tay Nữ Vintage",
-            price: 1250000,
-            originalPrice: 1250000,
-            discount: 0,
-            image: "/api/placeholder/180/220",
-            inStock: true,
-            rating: 4.8,
-            reviews: 76
-        },
-        {
-            id: 3,
-            name: "Đồng Hồ Thông Minh Series X",
-            price: 4990000,
-            originalPrice: 5990000,
-            discount: 17,
-            image: "/api/placeholder/180/220",
-            inStock: true,
-            rating: 4.7,
-            reviews: 243
-        },
-        {
-            id: 4,
-            name: "Tai Nghe Bluetooth Không Dây",
-            price: 2790000,
-            originalPrice: 3590000,
-            discount: 22,
-            image: "/api/placeholder/180/220",
-            inStock: false,
-            rating: 4.6,
-            reviews: 189
-        },
-        {
-            id: 5,
-            name: "Giày Thể Thao Running Pro",
-            price: 1890000,
-            originalPrice: 2190000,
-            discount: 14,
-            image: "/api/placeholder/180/220",
-            inStock: true,
-            rating: 4.3,
-            reviews: 95
-        }
-    ]);
-
-    const removeFromWishlist = (id) => {
-        setWishlistItems(wishlistItems.filter(item => item.id !== id));
-    };
-
+    const dispatch = useDispatch();
+    const { setLoading } = useLoading()
+    const [wishlistItems, setWishlistItems] = useState([]);
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
     };
+    useEffect(() => {
+        fetchData()
+    }, []);
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            const response = await customerItemsService.get_wishlist_items();
+            if (response.isSuccess) {
+                setWishlistItems(response.data)
+            }
 
-    const moveAllToCart = () => {
-        // Hàm này sẽ chuyển tất cả sản phẩm có sẵn vào giỏ hàng
-        alert('Đã thêm tất cả sản phẩm có sẵn vào giỏ hàng');
+        } catch (error) {
+
+        } finally {
+            setLoading(false)
+        }
+
+    }
+    const removeFromWishlist = async (id) => {
+        try {
+            await customerItemsService.removeItem(id);
+            setWishlistItems(wishlistItems.filter(item => item._id !== id));
+            dispatch(decrementWishlistCount())
+        } catch (error) {
+            showToast.success('Lỗi xóa sản phẩm');
+            console.error('Error removing item:', error);
+        }
     };
+    const moveItemToCart = async (item) => {
+        try {
+            await customerItemsService.addToCart({
+                product_id: item.product_id._id,
+                quantity: 1,
+                type: 'cart'
+            });
+            removeFromWishlist(item._id);
 
+            dispatch(incrementCartCount())
+            showToast.success('Thêm vào giỏ hàng thành công');
+
+        } catch (error) {
+            showToast.error('Lỗi thêm sản phẩm vào giỏ hàng: ', error.message);
+
+            console.error('Error moving item to cart:', error);
+        }
+    };
+    const moveAllToCart = async () => {
+        const availableItems = wishlistItems.filter(item => item.product_id.stock > 0);
+        try {
+            setLoading(true)
+            await Promise.all(
+                availableItems.map(item =>
+                    customerItemsService.addToCart({
+                        product_id: item.product_id._id,
+                        quantity: 1,
+                        type: 'cart'
+                    })
+                )
+            );
+            // Cập nhật danh sách wishlist
+            setWishlistItems(wishlistItems.filter(item => item.product_id.stock <= 0));
+            showToast.success('Thêm sản phẩm vào giỏ hàng thành công');
+        } catch (error) {
+            showToast.error('Lỗi thêm sản phẩm vào giỏ hàng: ', error.message);
+            console.error('Error moving all to cart:', error);
+        } finally {
+            setLoading(false)
+        }
+    };
     return (
         <div className="bg-gray-50 min-h-screen">
             <div className="max-w-6xl mx-auto px-4 py-8">
@@ -139,14 +148,14 @@ export default function Wishlist() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-24 w-20 bg-gray-100 rounded-md overflow-hidden">
-                                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                        <img src={item.product_id.main_image} alt={item.product_id.name} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 cursor-pointer">{item.name}</div>
-                                                        {item.discount > 0 && (
+                                                        <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 cursor-pointer">{item.product_id.name}</div>
+                                                        {item.product_id?.discount > 0 && (
                                                             <div className="flex items-center mt-1">
                                                                 <span className="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
-                                                                    -{item.discount}%
+                                                                    -{item.product_id.discount}%
                                                                 </span>
                                                             </div>
                                                         )}
@@ -154,13 +163,13 @@ export default function Wishlist() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-md font-semibold text-indigo-600">{formatPrice(item.price)}</div>
+                                                <div className="text-md font-semibold text-indigo-600">{formatPrice(item.product_id.price)}</div>
                                                 {item.discount > 0 && (
-                                                    <div className="text-sm text-gray-500 line-through">{formatPrice(item.originalPrice)}</div>
+                                                    <div className="text-sm text-gray-500 line-through">{formatPrice(item.product_id.originalPrice)}</div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {item.inStock ? (
+                                                {item.product_id.stock > 0 ? (
                                                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                         Còn hàng
                                                     </span>
@@ -185,9 +194,10 @@ export default function Wishlist() {
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end space-x-3">
                                                     <button
-                                                        className={`p-2 rounded-full ${item.inStock ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                                        disabled={!item.inStock}
-                                                        title={item.inStock ? "Thêm vào giỏ hàng" : "Sản phẩm hết hàng"}
+                                                        className={`p-2 rounded-full ${item.product_id.stock > 0 ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                                        disabled={item.product_id.stock <= 0}
+                                                        onClick={() => moveItemToCart(item)}
+                                                        title={item.product_id.stock > 0 ? "Thêm vào giỏ hàng" : "Sản phẩm hết hàng"}
                                                     >
                                                         <ShoppingCart size={18} />
                                                     </button>
@@ -204,7 +214,7 @@ export default function Wishlist() {
                                                         <Share2 size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => removeFromWishlist(item.id)}
+                                                        onClick={() => removeFromWishlist(item._id)}
                                                         className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100"
                                                         title="Xóa khỏi danh sách"
                                                     >
@@ -228,8 +238,6 @@ export default function Wishlist() {
                     <div className="text-gray-600 space-y-2">
                         <p>• Sản phẩm trong danh sách yêu thích sẽ được lưu trong 30 ngày.</p>
                         <p>• Giá sản phẩm có thể thay đổi theo thời gian.</p>
-                        <p>• Bạn sẽ nhận được thông báo khi sản phẩm giảm giá hoặc có hàng trở lại.</p>
-                        <p>• Bạn có thể chia sẻ danh sách yêu thích với bạn bè.</p>
                     </div>
                 </div>
             </div>

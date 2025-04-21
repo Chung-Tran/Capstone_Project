@@ -4,12 +4,11 @@ const { CustomerItemsController } = require('../controllers/customerItems.contro
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Wishlist routes
-router.post('/wishlist', authMiddleware, CustomerItemsController.addToWishlist);
-router.delete('/wishlist/:product_id', authMiddleware, CustomerItemsController.removeFromWishlist);
+router.post('/', authMiddleware, CustomerItemsController.addToCustomerItems);
+router.delete('/wishlist/:wishlist_id', authMiddleware, CustomerItemsController.removeFromWishlist);
 router.get('/wishlist', authMiddleware, CustomerItemsController.getWishlist);
 
 // Cart routes
-router.post('/cart', authMiddleware, CustomerItemsController.addToCart);
 router.put('/cart/:product_id', authMiddleware, CustomerItemsController.updateCartQuantity);
 router.delete('/cart/:product_id', authMiddleware, CustomerItemsController.removeFromCart);
 router.get('/cart', authMiddleware, CustomerItemsController.getCart);

@@ -312,11 +312,14 @@ const updateShopInfo = asyncHandler(async (req, res) => {
 const getAccountInfo = asyncHandler(async (req, res) => {
     const user = req.user;
 
-    const [customer, notifications, wishlist, cart] = await Promise.all([
+    const [customer, notifications, wishlistCount, cartQuantityAgg] = await Promise.all([
         Customer.findById(user._id).select('-password'),
         Notification.find({ user_id: user._id }),
         CustomerItems.countDocuments({ customer_id: user._id, type: 'wishlist' }),
-        CustomerItems.countDocuments({ customer_id: user._id, type: 'cart' })
+        CustomerItems.aggregate([
+            { $match: { customer_id: user._id, type: 'cart' } },
+            { $group: { _id: null, total: { $sum: "$quantity" } } }
+        ])
     ]);
 
     if (!customer) {
@@ -324,13 +327,16 @@ const getAccountInfo = asyncHandler(async (req, res) => {
         throw new Error('Customer not found');
     }
 
+    const cartCount = cartQuantityAgg[0]?.total || 0;
+
     res.json(formatResponse(true, {
         customer,
         notifications,
-        wishlistCount: wishlist,
-        cartCount: cart
+        wishlistCount,
+        cartCount
     }, 'Account info retrieved successfully'));
 });
+
 const updatePassword = asyncHandler(async (req, res) => {
     const user = req.user;
     const { currentPassword, newPassword } = req.body;

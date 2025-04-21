@@ -2,11 +2,17 @@ const asyncHandler = require('express-async-handler');
 const CustomerItems = require('../models/customerItems.model');
 const Product = require('../models/product.model');
 const formatResponse = require('../middlewares/responseFormat');
+const mongoose = require('mongoose');
 
-// Thêm sản phẩm vào wishlist
-const addToWishlist = asyncHandler(async (req, res) => {
+const addToCustomerItems = asyncHandler(async (req, res) => {
     const customer_id = req.user._id;
-    const { product_id } = req.body;
+    const { product_id, quantity, type } = req.body;
+
+    // Validate type
+    if (!['cart', 'wishlist'].includes(type)) {
+        res.status(400);
+        throw new Error('Invalid type. Must be "cart" or "wishlist"');
+    }
 
     // Kiểm tra sản phẩm tồn tại
     const product = await Product.findById(product_id);
@@ -15,35 +21,59 @@ const addToWishlist = asyncHandler(async (req, res) => {
         throw new Error('Product not found');
     }
 
-    // Thêm vào wishlist
-    const wishlistItem = await CustomerItems.findOneAndUpdate(
-        {
-            customer_id,
-            product_id,
-            type: 'wishlist'
-        },
-        {
-            customer_id,
-            product_id,
-            type: 'wishlist'
-        },
-        {
-            upsert: true,
-            new: true
-        }
-    ).populate('product_id');
+    let updatedItem;
 
-    res.status(201).json(formatResponse(true, wishlistItem, 'Added to wishlist successfully'));
+    if (type === 'cart') {
+        if (!quantity || quantity < 1) {
+            res.status(400);
+            throw new Error('Quantity is required for cart and must be >= 1');
+        }
+
+        // Tìm item trong giỏ hàng
+        const existingItem = await CustomerItems.findOne({ customer_id, product_id, type: 'cart' });
+
+        const totalQuantity = (existingItem?.quantity || 0) + quantity;
+
+        updatedItem = await CustomerItems.findOneAndUpdate(
+            { customer_id, product_id, type: 'cart' },
+            {
+                customer_id,
+                product_id,
+                type: 'cart',
+                quantity: totalQuantity
+            },
+            {
+                upsert: true,
+                new: true
+            }
+        ).populate('product_id');
+    } else {
+        // Wishlist: không có quantity
+        updatedItem = await CustomerItems.findOneAndUpdate(
+            { customer_id, product_id, type: 'wishlist' },
+            {
+                customer_id,
+                product_id,
+                type: 'wishlist'
+            },
+            {
+                upsert: true,
+                new: true
+            }
+        ).populate('product_id');
+    }
+
+    const message = type === 'cart' ? 'Added to cart successfully' : 'Added to wishlist successfully';
+    res.status(201).json(formatResponse(true, updatedItem, message));
 });
 
 // Xóa sản phẩm khỏi wishlist
 const removeFromWishlist = asyncHandler(async (req, res) => {
     const customer_id = req.user._id;
-    const { product_id } = req.params;
-
+    const { wishlist_id } = req.params;
     const result = await CustomerItems.findOneAndDelete({
         customer_id,
-        product_id,
+        _id: new mongoose.Types.ObjectId(wishlist_id),
         type: 'wishlist'
     });
 
@@ -67,45 +97,6 @@ const getWishlist = asyncHandler(async (req, res) => {
     res.json(formatResponse(true, wishlist, 'Wishlist retrieved successfully'));
 });
 
-// Thêm vào giỏ hàng
-const addToCart = asyncHandler(async (req, res) => {
-    const customer_id = req.user._id;
-    const { product_id, quantity } = req.body;
-
-    // Kiểm tra sản phẩm tồn tại
-    const product = await Product.findById(product_id);
-    if (!product) {
-        res.status(404);
-        throw new Error('Product not found');
-    }
-
-    // Kiểm tra số lượng trong kho
-    if (product.stock < quantity) {
-        res.status(400);
-        throw new Error('Not enough stock');
-    }
-
-    // Thêm hoặc cập nhật giỏ hàng
-    const cartItem = await CustomerItems.findOneAndUpdate(
-        {
-            customer_id,
-            product_id,
-            type: 'cart'
-        },
-        {
-            customer_id,
-            product_id,
-            type: 'cart',
-            quantity
-        },
-        {
-            upsert: true,
-            new: true
-        }
-    ).populate('product_id');
-
-    res.status(201).json(formatResponse(true, cartItem, 'Added to cart successfully'));
-});
 
 // Cập nhật số lượng trong giỏ hàng
 const updateCartQuantity = asyncHandler(async (req, res) => {
@@ -169,7 +160,13 @@ const getCart = asyncHandler(async (req, res) => {
     const cart = await CustomerItems.find({
         customer_id,
         type: 'cart'
-    }).populate('product_id');
+    }).populate({
+        path: 'product_id',
+        populate: {
+            path: 'store_id',
+            model: 'Store'
+        }
+    });
 
     res.json(formatResponse(true, cart, 'Cart retrieved successfully'));
 });
@@ -188,10 +185,9 @@ const clearCart = asyncHandler(async (req, res) => {
 
 module.exports = {
     CustomerItemsController: {
-        addToWishlist,
+        addToCustomerItems,
         removeFromWishlist,
         getWishlist,
-        addToCart,
         updateCartQuantity,
         removeFromCart,
         getCart,
