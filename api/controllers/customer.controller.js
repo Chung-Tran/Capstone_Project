@@ -361,7 +361,24 @@ const updatePassword = asyncHandler(async (req, res) => {
     res.json(formatResponse(true, {}, 'Đổi mật khẩu thành công!'));
 });
 
+const saveVoucher = asyncHandler(async (req, res) => {
+    const { voucherId } = req.body;
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+        res.status(404);
+        throw new Error('Customer not found');
+    }
 
+    if (customer.voucher_saved.includes(voucherId)) {
+        res.status(400);
+        throw new Error('Voucher already saved');
+    }
+
+    customer.voucher_saved.push(voucherId);
+    await customer.save();
+
+    res.json(formatResponse(true, {}, 'Voucher saved successfully'));
+})
 module.exports = {
     CustomerController: {
         sendRegistrationOTP,
@@ -373,6 +390,7 @@ module.exports = {
         getShopInfo,
         updateShopInfo,
         getAccountInfo,
-        updatePassword
+        updatePassword,
+        saveVoucher
     }
 }; 

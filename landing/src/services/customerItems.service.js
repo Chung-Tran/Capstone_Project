@@ -42,6 +42,14 @@ const customerItemsService = {
             throw handleError(error);
         }
     },
+    updateCartItemQuantity: async (itemId, quantity) => {
+        try {
+            const response = await axiosClient.put(`/customer-items/cart/${itemId}`, quantity);
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
+    },
 
 }
 

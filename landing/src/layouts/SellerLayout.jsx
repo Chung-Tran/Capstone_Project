@@ -42,8 +42,6 @@ const SellerLayout = ({ children }) => {
         { path: '/seller/dashboard', icon: HomeIcon, label: 'Tổng quan' },
         { path: '/seller/shop', icon: CogIcon, label: 'Quản lý cửa hàng' },
         { path: '/seller/products', icon: ShoppingBagIcon, label: 'Quản lý Sản phẩm' },
-        { path: '/seller/vouchers', icon: TicketIcon, label: 'Quản lý vouchers' },
-        { path: '/seller/flashsale', icon: TagIcon, label: 'Đăng ký Flash Sale' },
         { path: '/seller/orders', icon: ClipboardDocumentListIcon, label: 'Quản lý Đơn hàng' },
         { path: '/seller/reviews', icon: StarIcon, label: 'Đánh giá & Phản hồi' },
         { path: '/seller/messages', icon: ChatBubbleLeftRightIcon, label: 'Tin nhắn' },

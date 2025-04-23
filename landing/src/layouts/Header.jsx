@@ -126,9 +126,7 @@ const Header = () => {
                             <Link to="/danh-cho-ban" className="text-gray-700 hover:text-blue-600 font-medium text-base">
                                 Dành cho bạn
                             </Link>
-                            <Link to="/khuyen-mai" className="text-gray-700 hover:text-blue-600 font-medium text-base">
-                                Khuyến mãi
-                            </Link>
+
                             <Link to="/san-pham-moi" className="text-gray-700 hover:text-blue-600 font-medium text-base">
                                 Sản phẩm mới
                             </Link>
@@ -313,13 +311,6 @@ const Header = () => {
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     Dành cho bạn
-                                </Link>
-                                <Link
-                                    to="/khuyen-mai"
-                                    className="block text-base text-gray-700 hover:text-blue-600"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Khuyến mãi
                                 </Link>
                                 <Link
                                     to="/san-pham-moi"

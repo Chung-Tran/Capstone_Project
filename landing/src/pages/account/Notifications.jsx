@@ -278,8 +278,6 @@ const Notifications = () => {
         switch (type) {
             case 'order':
                 return 'Đơn hàng';
-            case 'promotion':
-                return 'Khuyến mãi';
             case 'system':
                 return 'Hệ thống';
             case 'payment':

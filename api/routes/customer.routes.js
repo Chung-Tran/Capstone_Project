@@ -23,6 +23,7 @@ router.get('/account-info', authMiddleware, CustomerController.getAccountInfo);
 
 
 router.put('/shop', authMiddleware, multiUpload, CustomerController.updateShopInfo);
+router.put('/save-voucher', authMiddleware, CustomerController.saveVoucher);
 router.put('/:id', authMiddleware, multiUpload, CustomerController.updateCustomerProfile);
 
 router.patch('/update-password', authMiddleware, CustomerController.updatePassword);

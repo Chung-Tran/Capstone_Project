@@ -96,29 +96,6 @@ export default function StorePage() {
         },
     ];
 
-    const vouchers = [
-        {
-            id: 1,
-            code: 'WELCOME20',
-            discount: '20%',
-            minSpend: 200000,
-            expiry: '30/04/2025',
-        },
-        {
-            id: 2,
-            code: 'FREESHIP',
-            discount: 'Miễn phí vận chuyển',
-            minSpend: 500000,
-            expiry: '15/05/2025',
-        },
-        {
-            id: 3,
-            code: 'FLASH50K',
-            discount: '50.000đ',
-            minSpend: 300000,
-            expiry: '20/04/2025',
-        },
-    ];
 
     const shopInfo = {
         name: 'TechStyle Shop',
@@ -218,34 +195,6 @@ export default function StorePage() {
                             <button className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">
                                 Theo dõi Shop
                             </button>
-                        </div>
-                    </div>
-
-                    {/* Vouchers Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">Mã giảm giá</h3>
-                            <Tag size={20} className="text-orange-500" />
-                        </div>
-                        <div className="space-y-4">
-                            {vouchers.map(voucher => (
-                                <div key={voucher.id} className="border border-dashed border-orange-300 rounded-lg p-3 bg-orange-50">
-                                    <div className="flex justify-between mb-2">
-                                        <span className="font-bold text-orange-600">{voucher.discount}</span>
-                                        <div className="flex items-center text-xs text-gray-500">
-                                            <Clock size={14} className="mr-1" />
-                                            <span>HSD: {voucher.expiry}</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-sm text-gray-600">Đơn tối thiểu {formatPrice(voucher.minSpend)}</div>
-                                    <div className="mt-2 flex justify-between items-center">
-                                        <code className="bg-white px-2 py-1 rounded border border-orange-200 text-orange-700 text-sm font-bold">
-                                            {voucher.code}
-                                        </code>
-                                        <button className="text-blue-600 text-sm font-medium">Lưu</button>
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>

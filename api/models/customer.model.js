@@ -44,6 +44,11 @@ const customerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    voucher_saved: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Promotion',
+        default: []
+    }],
     last_login: Date
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
