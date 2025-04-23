@@ -21,7 +21,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthProvider from './providers/auth.provider';
 import ForYouPage from './pages/ForyouPage';
-import PromotionsPage from './pages/PromotionsPage';
 import NewProductsPage from './pages/NewProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import SearchProductPage from './pages/SearchProductPage';
@@ -34,8 +33,6 @@ import TransactionHistory from './pages/account/TransactionHistory';
 import ShoppingCart from './pages/CartPage';
 import Wishlist from './pages/Wishlist';
 import StorePage from './pages/StorePage';
-import VoucherManager from './pages/seller/VoucherManager';
-import FlashSaleRegister from './pages/seller/FlashSaleRegister';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -93,9 +90,7 @@ const AppRoutes = () => {
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="shop" element={<ShopManagement />} />
-            <Route path="vouchers" element={<VoucherManager />} />
             <Route path="products" element={<ProductsManager />} />
-            <Route path="flashsale" element={<FlashSaleRegister />} />
             <Route path="orders" element={<Orders />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="messages" element={<Messages />} />
@@ -112,7 +107,6 @@ const AppRoutes = () => {
               <Route path="/" element={<HomePage />} />
               <Route path="/san-pham" element={<Products />} />
               <Route path="/danh-cho-ban" element={<ForYouPage />} />
-              <Route path="/khuyen-mai" element={<PromotionsPage />} />
               <Route path="/san-pham-moi" element={<NewProductsPage />} />
               <Route path="/san-pham/:id" element={<ProductDetailPage />} />
               <Route path="/tim-kiem-san-pham/:slug" element={<SearchProductPage />} />

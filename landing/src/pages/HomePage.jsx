@@ -8,7 +8,6 @@ import {
 import productService from '../services/product.service';
 import { showToast } from '../utils/toast';
 import { useLoading } from '../utils/useLoading';
-import FlashSale from '../components/FlashSale';
 import HeroSection from '../components/HeroSection';
 import customerItemsService from '../services/customerItems.service';
 import { useDispatch, useSelector } from 'react-redux';
@@ -243,11 +242,6 @@ function HomePage() {
                     </div>
                 </div>
             </section>
-
-            {/* Flash Sale */}
-            <FlashSale />
-
-
             {/* Sản phẩm mới */}
             <section className="py-8 ">
                 <div className="container mx-auto px-4">

@@ -86,13 +86,6 @@ const ProductDetailPage = () => {
         }
     };
 
-
-    const coupons = [
-        { code: 'GIAMSOC500K', discount: '500.000đ', minOrder: '20.000.000đ', validUntil: '30/04/2025' },
-        { code: 'MOIHANG10', discount: '10%', minOrder: '5.000.000đ', validUntil: '15/05/2025', maxDiscount: '800.000đ' },
-        { code: 'FREESHIP0D', discount: 'Freeship', minOrder: '500.000đ', validUntil: '30/04/2025' }
-    ];
-
     const relatedProducts = Array(8).fill().map((_, i) => ({
         id: `related-${i + 1}`,
         name: `Samsung Galaxy A${54 + i}`,
@@ -118,16 +111,6 @@ const ProductDetailPage = () => {
         setQuantity(quantity + 1);
     };
 
-    // Xử lý copy mã giảm giá
-    const copyCoupon = (code) => {
-        navigator.clipboard.writeText(code)
-            .then(() => {
-                alert(`Đã sao chép mã: ${code}`);
-            })
-            .catch(err => {
-                console.error('Lỗi khi sao chép:', err);
-            });
-    };
     const handlePostReview = async (formData) => {
         try {
             setLoading(true);
@@ -328,54 +311,6 @@ const ProductDetailPage = () => {
                                 <span className="text-xs text-gray-600">30 ngày đổi trả</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Coupon section */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
-                <div className="p-4 border-b border-gray-200">
-                    <h2 className="text-lg font-medium text-gray-800">Mã giảm giá</h2>
-                </div>
-                <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {coupons.map((coupon, index) => (
-                            <div
-                                key={index}
-                                className="border border-dashed border-orange-400 bg-orange-50 rounded-lg p-3 relative overflow-hidden"
-                            >
-                                <div className="absolute -left-5 top-0 bottom-0 flex items-center">
-                                    <div className="w-10 h-10 bg-white rounded-full"></div>
-                                </div>
-                                <div className="absolute -right-5 top-0 bottom-0 flex items-center">
-                                    <div className="w-10 h-10 bg-white rounded-full"></div>
-                                </div>
-                                <div className="ml-2">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div className="text-lg font-bold text-orange-600">
-                                            {coupon.discount}
-                                        </div>
-                                        <button
-                                            onClick={() => copyCoupon(coupon.code)}
-                                            className="text-xs bg-orange-600 text-white px-2 py-1 rounded"
-                                        >
-                                            Sao chép
-                                        </button>
-                                    </div>
-                                    <div className="text-xs text-gray-600 mb-1">
-                                        Đơn tối thiểu {coupon.minOrder}
-                                    </div>
-                                    {coupon.maxDiscount && (
-                                        <div className="text-xs text-gray-600 mb-1">
-                                            Giảm tối đa {coupon.maxDiscount}
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-gray-500">
-                                        HSD: {coupon.validUntil}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </div>
