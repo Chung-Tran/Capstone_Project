@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, ShoppingCart, Star, Award, Truck, Eye, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../common/methodsCommon';
+import { Rating } from 'react-simple-star-rating';
 const ProductCardItem = ({ product }) => {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -68,15 +69,17 @@ const ProductCardItem = ({ product }) => {
                 {/* Rating */}
                 <div className="flex items-center mb-2">
                     <div className="flex items-center mr-2">
-                        {[...Array(5)].map((_, i) => (
-                            <Star
-                                key={i}
-                                size={14}
-                                className={i < Math.floor(item.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
-                            />
-                        ))}
+                        <Rating
+                            initialValue={product.average_rating}
+                            size={20}
+                            allowFraction
+                            readonly
+                            SVGstyle={{ display: 'inline-block' }}
+                            fillColor="#facc15"
+                            emptyColor="#e5e7eb"
+                        />
                     </div>
-                    <span className="text-xs text-gray-600">({item.reviewCount} đánh giá)</span>
+                    <span className="text-xs text-gray-600">({item.total_reviews} đánh giá)</span>
                 </div>
 
                 {/* Product name */}

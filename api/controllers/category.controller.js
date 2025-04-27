@@ -45,25 +45,36 @@ const createCategory = asyncHandler(async (req, res) => {
 });
 
 const getCategories = asyncHandler(async (req, res) => {
-    const categories = await Category.find({ status: 'active' })
-        .select('_id name parent_category_id level')
-        .lean();
 
-    // Xây dựng cây danh mục
-    const buildCategoryTree = (categories, parentId = null) => {
-        return categories
-            .filter(cat => (cat.parent_category_id ? cat.parent_category_id.toString() : null) === parentId)
-            .map(cat => ({
-                _id: cat._id,
-                name: cat.name,
-                level: cat.level,
-                children: buildCategoryTree(categories, cat._id.toString())
-            }));
-    };
+    const categories = await Category.aggregate([
+        { $match: { status: 'active' } },
+        {
+            $lookup: {
+                from: 'products', // tên collection (phải đúng tên trong MongoDB)
+                localField: '_id',
+                foreignField: 'category_id', // field ở Product trỏ về Category
+                as: 'products'
+            }
+        },
+        {
+            $addFields: {
+                productCount: { $size: '$products' }
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                name: 1,
+                parent_category_id: 1,
+                level: 1,
+                productCount: 1
+            }
+        }
+    ]);
 
-    const categoryTree = buildCategoryTree(categories);
-    res.status(200).json(formatResponse(true, categoryTree, 'Categories retrieved successfully'));
+    res.status(200).json(formatResponse(true, categories, 'Categories retrieved successfully'));
 });
+
 
 const updateCategory = asyncHandler(async (req, res) => {
     const category = await Category.findById(req.params.id);

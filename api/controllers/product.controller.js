@@ -104,34 +104,118 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, category, search } = req.query;
+    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance' } = req.query;
+
     const query = {};
-
-    if (category && mongoose.isValidObjectId(category)) {
-        query.category_id = { $in: [category] };
+    if (categories) {
+        let categoriesQuery = categories.split(',')
+            .map(id => id.trim())
+            .filter(id => mongoose.isValidObjectId(id));
+        if (categoriesQuery.length > 0) {
+            query.category_id = { $in: categoriesQuery };
+        }
     }
-    if (search) {
-        query.name = { $regex: search, $options: 'i' };
+
+    if (keyword && !query.category_id) {
+        query.name = { $regex: keyword, $options: 'i' };
     }
 
-    const products = await Product.find(query)
+    if (slug) {
+        query.slug = { $regex: slug, $options: 'i' };
+    }
+
+    if (minPrice || maxPrice) {
+        query.price = {};
+        if (minPrice) query.price.$gte = Number(minPrice);
+        if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Xử lý sortOption
+    let sortQuery = {};
+    switch (sortOption) {
+        case 'newest':
+            sortQuery.createdAt = -1; // mới nhất
+            break;
+        case 'bestSeller':
+            sortQuery.quantitySold = -1; // bán chạy nhất
+            break;
+        case 'priceAsc':
+            sortQuery.price = 1; // giá tăng dần
+            break;
+        case 'priceDesc':
+            sortQuery.price = -1; // giá giảm dần
+            break;
+        case 'rating':
+            break;
+        case 'relevance':
+        default:
+            // mặc định không sort gì đặc biệt (theo Mongo)
+            break;
+    }
+
+    let productQuery = Product.find(query)
         .populate('category_id')
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit));
 
+    if (sortOption !== 'rating') {
+        productQuery = productQuery.sort(sortQuery);
+    }
+
+    const products = await productQuery;
     const total = await Product.countDocuments(query);
 
-    if (products) {
-        res.json(formatResponse(true, products, 'Products retrieved successfully', {
-            page: parseInt(page),
-            total,
-            totalPages: Math.ceil(total / limit)
-        }));
-    } else {
-        res.status(404);
-        throw new Error('Không tìm thấy sản phẩm');
+    const productIds = products.map(p => p._id);
+
+    const reviews = await Review.find({
+        product_id: { $in: productIds },
+        review_type: 'product_review'
+    });
+
+    const reviewMap = {};
+    reviews.forEach(review => {
+        const pid = review.product_id.toString();
+        if (!reviewMap[pid]) reviewMap[pid] = [];
+        reviewMap[pid].push(review);
+    });
+
+    let productsWithRatings = products.map(product => {
+        const pid = product._id.toString();
+        const productReviews = reviewMap[pid] || [];
+        const totalReviews = productReviews.length;
+        let averageRating = 0;
+
+        if (totalReviews > 0) {
+            const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
+            averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+        }
+
+        return {
+            ...product.toObject(),
+            average_rating: averageRating,
+            total_reviews: totalReviews
+        };
+    });
+
+    // Lọc theo minRating nếu có
+    if (minRating) {
+        productsWithRatings = productsWithRatings.filter(product => product.average_rating >= Number(minRating));
     }
+
+    // Nếu sort theo rating thì sort ở đây
+    if (sortOption === 'rating') {
+        productsWithRatings.sort((a, b) => b.average_rating - a.average_rating);
+    }
+
+    res.json(formatResponse(true, productsWithRatings, 'Products retrieved successfully', {
+        page: Number(page),
+        total,
+        totalPages: Math.ceil(total / limit)
+    }));
 });
+
+
+
 
 const getProductById = asyncHandler(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {

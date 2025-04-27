@@ -12,22 +12,31 @@ const reviewSchema = new mongoose.Schema({
     customer_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
-        required: true
+        required: true,
     },
     rating: {
         type: Number,
         required: true,
         min: 1,
-        max: 5
+        max: 5,
     },
     content: String,
     images: [String],
     verified_purchase: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
+    reply: {
+        content: String,
+        replied_at: Date,
+    },
+    title: String,
+    status: {
+        type: String,
+        default: 'active',
+    },
 }, {
-    timestamps: { createdAt: 'created_at' }
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
-module.exports = mongoose.model('Review', reviewSchema); 
+module.exports = mongoose.model('Review', reviewSchema);

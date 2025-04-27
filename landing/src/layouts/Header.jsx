@@ -12,6 +12,7 @@ const Header = () => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const { isAuthenticated, userRole, user, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
+    const { categories } = useSelector((state) => state.common);
     // Refs for closing dropdowns when clicking outside
     const notificationRef = useRef(null);
     const userMenuRef = useRef(null);
@@ -45,24 +46,32 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Categories data
-    const categories = [
-        { name: 'Điện thoại', path: '/dien-thoai' },
-        { name: 'Máy tính', path: '/may-tinh' },
-        { name: 'Thiết bị', path: '/thiet-bi' },
-    ];
-
     // Notifications data
     const notificationsList = [
         { id: 1, text: 'Ưu đãi mới: Giảm 50% cho đơn hàng đầu tiên', time: '5 phút trước' },
         { id: 2, text: 'Flash Sale sắp diễn ra', time: '1 giờ trước' },
         { id: 3, text: 'Đơn hàng #123 đã được giao thành công', time: '2 giờ trước' },
     ];
+    const removeVietnameseTones = (str) => {
+        return str.normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    };
+
+    const convertToSlug = (text) => {
+        return removeVietnameseTones(text)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-') // Thay thế các ký tự không phải chữ hoặc số bằng dấu gạch ngang
+            .replace(/^-+|-+$/g, '');    // Loại bỏ dấu gạch ngang ở đầu và cuối chuỗi
+    };
 
     // Search handler
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
-            console.log('Search performed');
+            const keyword = e.target.value;
+            const slug = convertToSlug(keyword);
+            navigate(`/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
         }
     };
     const handleLogout = () => {
