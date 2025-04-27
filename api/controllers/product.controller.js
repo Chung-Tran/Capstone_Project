@@ -104,14 +104,17 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, category, search } = req.query;
+    const { page = 1, limit = 10, category, slug, keyword } = req.query;
     const query = {};
 
     if (category && mongoose.isValidObjectId(category)) {
         query.category_id = { $in: [category] };
     }
-    if (search) {
-        query.name = { $regex: search, $options: 'i' };
+    if (keyword) {
+        query.name = { $regex: keyword, $options: 'i' };
+    }
+    if (slug) {
+        query.slug = { $regex: slug, $options: 'i' };
     }
 
     const products = await Product.find(query)
@@ -121,17 +124,35 @@ const getProducts = asyncHandler(async (req, res) => {
 
     const total = await Product.countDocuments(query);
 
-    if (products) {
-        res.json(formatResponse(true, products, 'Products retrieved successfully', {
-            page: parseInt(page),
-            total,
-            totalPages: Math.ceil(total / limit)
-        }));
-    } else {
-        res.status(404);
-        throw new Error('Không tìm thấy sản phẩm');
-    }
+    // Gắn rating và reviews cho từng sản phẩm
+    const productsWithRatings = await Promise.all(products.map(async (product) => {
+        const reviews = await Review.find({
+            product_id: product._id,
+            review_type: 'product_review'
+        });
+
+        const totalReviews = reviews.length;
+        let averageRating = 0;
+
+        if (totalReviews > 0) {
+            const sumRatings = reviews.reduce((sum, review) => sum + review.rating, 0);
+            averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+        }
+
+        return {
+            ...product.toObject(),
+            average_rating: averageRating,
+            total_reviews: totalReviews
+        };
+    }));
+
+    res.json(formatResponse(true, productsWithRatings, 'Products retrieved successfully', {
+        page: parseInt(page),
+        total,
+        totalPages: Math.ceil(total / limit)
+    }));
 });
+
 
 const getProductById = asyncHandler(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {

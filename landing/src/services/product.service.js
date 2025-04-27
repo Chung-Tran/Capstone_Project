@@ -83,6 +83,20 @@ const productService = {
             throw new Error(errorInfo.message);
         }
     },
+    product_search: async ({ limit, skip, slug, categories, keyword }) => {
+        try {
+            const rawParams = { limit, skip, slug, categories, keyword };
+            const params = Object.fromEntries(
+                Object.entries(rawParams).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+            );
+
+            const response = await axiosClient.get(`/products/`, { params });
+            return handleResponse(response);
+        } catch (error) {
+            const errorInfo = handleError(error);
+            throw new Error(errorInfo.message);
+        }
+    },
 };
 
 export default productService;

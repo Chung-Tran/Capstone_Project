@@ -58,11 +58,26 @@ const Header = () => {
         { id: 2, text: 'Flash Sale sắp diễn ra', time: '1 giờ trước' },
         { id: 3, text: 'Đơn hàng #123 đã được giao thành công', time: '2 giờ trước' },
     ];
+    const removeVietnameseTones = (str) => {
+        return str.normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    };
+
+    const convertToSlug = (text) => {
+        return removeVietnameseTones(text)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-') // Thay thế các ký tự không phải chữ hoặc số bằng dấu gạch ngang
+            .replace(/^-+|-+$/g, '');    // Loại bỏ dấu gạch ngang ở đầu và cuối chuỗi
+    };
 
     // Search handler
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
-            console.log('Search performed');
+            const keyword = e.target.value;
+            const slug = convertToSlug(keyword);
+            navigate(`/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
         }
     };
     const handleLogout = () => {

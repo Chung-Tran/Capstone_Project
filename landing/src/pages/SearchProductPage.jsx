@@ -1,58 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Search,
-    SlidersHorizontal,
-    X,
-    ChevronDown,
-    ChevronUp,
-    Grid,
-    List,
-    Star,
-    ArrowDownUp,
-    ChevronLeft,
-    ChevronRight
+    Search, SlidersHorizontal, X, ChevronDown, ChevronUp,
+    Grid, List, Star, ArrowDownUp, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import ProductCardItem from '../components/product/ProductCard';
-
+import productService from '../services/product.service';
+import { Rating } from 'react-simple-star-rating';
+import { formatCurrency } from '../common/methodsCommon';
+import { useSearchParams } from 'react-router-dom';
 const SearchProductPage = () => {
-    // Query state
-    const [searchQuery, setSearchQuery] = useState('điện thoại samsung');
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [searchParams] = useSearchParams();
+    const keyword = searchParams.get('keyword');
+    const [searchQuery, setSearchQuery] = useState(keyword);
+    const [viewMode, setViewMode] = useState('grid');
     const [sortOption, setSortOption] = useState('relevance');
     const [isSortOpen, setIsSortOpen] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [products, setProducts] = useState([]);
 
-    // Price range
-    const [priceRange, setPriceRange] = useState([0, 50000000]);
-    const [selectedPriceRange, setSelectedPriceRange] = useState([]);
-
-    // Category filters
+    // Filters state
     const [selectedCategories, setSelectedCategories] = useState([]);
+    const [selectedPriceRange, setSelectedPriceRange] = useState([]);
+    const [tempSelectedCategories, setTempSelectedCategories] = useState([]);
+    const [tempSelectedPriceRange, setTempSelectedPriceRange] = useState([]);
+    const [tempSelectedRatings, setTempSelectedRatings] = useState([]);
+    const [tempMinPrice, setTempMinPrice] = useState('');
+    const [tempMaxPrice, setTempMaxPrice] = useState('');
+    const [customPriceRange, setCustomPriceRange] = useState(false);
+
     const [expandedCategories, setExpandedCategories] = useState({
-        brands: false,
-        features: false,
-        ratings: false,
-        shopTypes: false
+        ratings: false
     });
 
-    // Sample product data
-    const products = Array(24).fill().map((_, i) => ({
-        id: `search-result-${i + 1}`,
-        name: `Samsung Galaxy ${['S23', 'A54', 'Z Fold 5', 'Note 20', 'S22 Ultra'][i % 5]} ${i % 2 === 0 ? '256GB' : '128GB'} ${['Đen', 'Trắng', 'Xanh', 'Tím'][i % 4]}`,
-        price: 5000000 + (i * 1000000 % 25000000),
-        originalPrice: 6000000 + (i * 1000000 % 25000000),
-        discount: 10 + (i % 20),
-        rating: 3.5 + (Math.random() * 1.5),
-        reviewCount: 20 + Math.floor(Math.random() * 500),
-        image: "/api/placeholder/400/400",
-        images: ["/api/placeholder/400/400", "/api/placeholder/400/400"],
-        isAd: i % 10 === 0,
-        badges: i % 5 === 0 ? ['Giảm sốc'] : i % 7 === 0 ? ['Freeship'] : [],
-        stockStatus: i % 15 === 0 ? 'Hết hàng' : 'Còn hàng',
-        shopType: i % 6 === 0 ? 'shopMall' : 'official',
-        soldCount: 50 + Math.floor(Math.random() * 500),
-        freeShipping: i % 3 === 0
-    }));
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        itemsPerPage: 20
+    });
 
     // Filter data
     const filterOptions = {
@@ -63,31 +48,10 @@ const SearchProductPage = () => {
             { id: 'dong-ho-thong-minh', name: 'Đồng hồ thông minh', count: 89 },
             { id: 'tai-nghe', name: 'Tai nghe', count: 432 },
         ],
-        brands: [
-            { id: 'samsung', name: 'Samsung', count: 356 },
-            { id: 'apple', name: 'Apple', count: 243 },
-            { id: 'xiaomi', name: 'Xiaomi', count: 198 },
-            { id: 'oppo', name: 'OPPO', count: 145 },
-            { id: 'vivo', name: 'Vivo', count: 98 },
-            { id: 'nokia', name: 'Nokia', count: 76 },
-            { id: 'realme', name: 'Realme', count: 67 },
-        ],
-        features: [
-            { id: '5g', name: 'Hỗ trợ 5G', count: 242 },
-            { id: 'ram-8gb', name: 'RAM 8GB trở lên', count: 189 },
-            { id: 'ram-6gb', name: 'RAM 6GB trở lên', count: 298 },
-            { id: 'rom-256gb', name: 'Bộ nhớ 256GB trở lên', count: 143 },
-            { id: 'camera-48mp', name: 'Camera 48MP trở lên', count: 176 },
-        ],
         ratings: [
             { id: '5star', name: '5 sao', count: 156 },
             { id: '4star', name: '4 sao trở lên', count: 302 },
             { id: '3star', name: '3 sao trở lên', count: 356 },
-        ],
-        shopTypes: [
-            { id: 'official', name: 'Shop chính hãng', count: 127 },
-            { id: 'shopMall', name: 'Shop Mall', count: 89 },
-            { id: 'favorite', name: 'Shop yêu thích', count: 245 },
         ],
         priceRanges: [
             { id: '0-2m', name: 'Dưới 2 triệu', min: 0, max: 2000000 },
@@ -108,38 +72,54 @@ const SearchProductPage = () => {
         { id: 'rating', name: 'Đánh giá cao' },
     ];
 
+    // Count active filters
+    const activeFiltersCount = selectedCategories.length + (selectedPriceRange.length > 0 ? 1 : 0);
+
     // Toggle category expansion
     const toggleCategory = (category) => {
-        setExpandedCategories({
-            ...expandedCategories,
-            [category]: !expandedCategories[category]
-        });
+        setExpandedCategories(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
     };
 
-    // Toggle category selection
-    const toggleCategorySelection = (id) => {
-        if (selectedCategories.includes(id)) {
-            setSelectedCategories(selectedCategories.filter(item => item !== id));
+    // Apply all filters
+    const applyAllFilters = () => {
+        setSelectedCategories([
+            ...tempSelectedCategories.filter(cat => !cat.includes('star')),
+            ...tempSelectedRatings
+        ]);
+
+        // Handle price range
+        if (customPriceRange && tempMinPrice && tempMaxPrice) {
+            setSelectedPriceRange([parseFloat(tempMinPrice), parseFloat(tempMaxPrice)]);
+        } else if (!customPriceRange && tempSelectedPriceRange.length === 2) {
+            setSelectedPriceRange(tempSelectedPriceRange);
         } else {
-            setSelectedCategories([...selectedCategories, id]);
-        }
-    };
-
-    // Handle price range selection
-    const handlePriceRangeSelection = (range) => {
-        if (selectedPriceRange.length === 2 &&
-            selectedPriceRange[0] === range.min &&
-            selectedPriceRange[1] === range.max) {
             setSelectedPriceRange([]);
-        } else {
-            setSelectedPriceRange([range.min, range.max]);
         }
+
+        fetchProducts(1);
     };
 
     // Clear all filters
     const clearAllFilters = () => {
         setSelectedCategories([]);
         setSelectedPriceRange([]);
+        setTempSelectedCategories([]);
+        setTempSelectedPriceRange([]);
+        setTempSelectedRatings([]);
+        setTempMinPrice('');
+        setTempMaxPrice('');
+        setCustomPriceRange(false);
+        fetchProducts(1);
+    };
+
+    // Toggle category selection
+    const toggleCategorySelection = (id) => {
+        setSelectedCategories(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
     };
 
     // Reset search query
@@ -147,31 +127,72 @@ const SearchProductPage = () => {
         setSearchQuery('');
     };
 
-    // Format currency
-    const formatCurrency = (price) => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(price);
+    // Fetch products based on filters
+    const fetchProducts = async (page = 1) => {
+        try {
+            const limit = pagination.itemsPerPage;
+            const skip = (page - 1) * limit;
+
+            // Build params for API call
+            const params = { limit, skip, keyword };
+
+            // Add category filters (excluding star ratings)
+            const categoryFilters = selectedCategories.filter(cat => !cat.includes('star'));
+            if (categoryFilters.length > 0) {
+                params.categories = categoryFilters.join(',');
+            }
+
+            // Add price range
+            if (selectedPriceRange.length === 2) {
+                params.minPrice = selectedPriceRange[0];
+                params.maxPrice = selectedPriceRange[1];
+            }
+
+            // Add rating filter
+            const ratingFilters = selectedCategories.filter(cat => cat.includes('star'));
+            if (ratingFilters.length > 0) {
+                const highestRating = Math.max(...ratingFilters.map(r => parseInt(r.charAt(0))));
+                params.minRating = highestRating;
+            }
+
+            // Add sort parameter
+            params.sort = sortOption;
+
+            const response = await productService.product_search(params);
+            if (response?.data) {
+                setProducts(response.data);
+
+                // Update pagination from metadata
+                const { page: currentPage, totalPages, total } = response.metadata;
+                setPagination({
+                    currentPage,
+                    totalPages,
+                    totalItems: total,
+                    itemsPerPage: limit
+                });
+            } else {
+                setProducts([]);
+            }
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            setProducts([]);
+        }
     };
 
-    // Count active filters
-    const activeFiltersCount = selectedCategories.length + (selectedPriceRange.length > 0 ? 1 : 0);
+    // Initialize filters and fetch products on mount
+    useEffect(() => {
+        setTempSelectedCategories(selectedCategories.filter(cat => !cat.includes('star')));
+        setTempSelectedPriceRange(selectedPriceRange);
+        setTempSelectedRatings(selectedCategories.filter(cat => cat.includes('star')));
+        setSearchQuery(keyword);
+        fetchProducts();
+    }, [keyword]);
 
-    // Render stars for rating
-    const renderStars = (rating) => {
-        return Array(5).fill().map((_, i) => (
-            <Star
-                key={i}
-                size={14}
-                className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" :
-                    (i < rating ? "fill-yellow-400 text-yellow-400 opacity-50" : "text-gray-300")}
-            />
-        ));
-    };
-
+    // Re-fetch products when sort option changes
+    useEffect(() => {
+        fetchProducts(pagination.currentPage);
+    }, [sortOption]);
+    console.log(keyword)
     return (
         <div className="max-w-7xl mx-auto px-4 py-6">
             {/* Search header */}
@@ -214,6 +235,7 @@ const SearchProductPage = () => {
                 {/* Filter sidebar - Desktop */}
                 <div className="hidden lg:block w-64 flex-shrink-0">
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+                        {/* Filter header */}
                         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="font-medium">Bộ lọc tìm kiếm</h3>
                             {activeFiltersCount > 0 && (
@@ -226,6 +248,7 @@ const SearchProductPage = () => {
                             )}
                         </div>
 
+                        {/* Categories filter */}
                         <div className="p-4 border-b border-gray-200">
                             <h4 className="font-medium mb-3">Danh mục</h4>
                             <div className="space-y-2">
@@ -234,8 +257,14 @@ const SearchProductPage = () => {
                                         <input
                                             type="checkbox"
                                             id={`cat-${category.id}`}
-                                            checked={selectedCategories.includes(category.id)}
-                                            onChange={() => toggleCategorySelection(category.id)}
+                                            checked={tempSelectedCategories.includes(category.id)}
+                                            onChange={() => {
+                                                setTempSelectedCategories(prev =>
+                                                    prev.includes(category.id)
+                                                        ? prev.filter(item => item !== category.id)
+                                                        : [...prev, category.id]
+                                                );
+                                            }}
                                             className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
                                         <label htmlFor={`cat-${category.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
@@ -247,36 +276,7 @@ const SearchProductPage = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 border-b border-gray-200">
-                            <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCategory('brands')}
-                            >
-                                <h4 className="font-medium">Thương hiệu</h4>
-                                {expandedCategories.brands ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </div>
-
-                            {expandedCategories.brands && (
-                                <div className="mt-3 space-y-2">
-                                    {filterOptions.brands.map(brand => (
-                                        <div key={brand.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`brand-${brand.id}`}
-                                                checked={selectedCategories.includes(brand.id)}
-                                                onChange={() => toggleCategorySelection(brand.id)}
-                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <label htmlFor={`brand-${brand.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
-                                                {brand.name}
-                                            </label>
-                                            <span className="text-xs text-gray-500">({brand.count})</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
+                        {/* Price range filter */}
                         <div className="p-4 border-b border-gray-200">
                             <h4 className="font-medium mb-3">Khoảng giá</h4>
                             <div className="space-y-2">
@@ -285,8 +285,20 @@ const SearchProductPage = () => {
                                         <input
                                             type="checkbox"
                                             id={`price-${range.id}`}
-                                            checked={selectedPriceRange.length === 2 && selectedPriceRange[0] === range.min && selectedPriceRange[1] === range.max}
-                                            onChange={() => handlePriceRangeSelection(range)}
+                                            checked={!customPriceRange &&
+                                                tempSelectedPriceRange.length === 2 &&
+                                                tempSelectedPriceRange[0] === range.min &&
+                                                tempSelectedPriceRange[1] === range.max}
+                                            onChange={() => {
+                                                setCustomPriceRange(false);
+                                                setTempSelectedPriceRange(prev =>
+                                                    prev.length === 2 &&
+                                                        prev[0] === range.min &&
+                                                        prev[1] === range.max
+                                                        ? []
+                                                        : [range.min, range.max]
+                                                );
+                                            }}
                                             className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
                                         <label htmlFor={`price-${range.id}`} className="ml-2 text-sm text-gray-700">
@@ -295,25 +307,9 @@ const SearchProductPage = () => {
                                     </div>
                                 ))}
                             </div>
-
-                            <div className="mt-4 flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="₫ TỪ"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                />
-                                <span className="text-gray-500">-</span>
-                                <input
-                                    type="text"
-                                    placeholder="₫ ĐẾN"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                />
-                            </div>
-                            <button className="w-full mt-2 bg-blue-600 text-white py-2 rounded-md text-sm hover:bg-blue-700">
-                                Áp dụng
-                            </button>
                         </div>
 
+                        {/* Ratings filter */}
                         <div className="p-4 border-b border-gray-200">
                             <div
                                 className="flex justify-between items-center cursor-pointer"
@@ -330,8 +326,14 @@ const SearchProductPage = () => {
                                             <input
                                                 type="checkbox"
                                                 id={`rating-${rating.id}`}
-                                                checked={selectedCategories.includes(rating.id)}
-                                                onChange={() => toggleCategorySelection(rating.id)}
+                                                checked={tempSelectedRatings.includes(rating.id)}
+                                                onChange={() => {
+                                                    setTempSelectedRatings(prev =>
+                                                        prev.includes(rating.id)
+                                                            ? prev.filter(item => item !== rating.id)
+                                                            : [...prev, rating.id]
+                                                    );
+                                                }}
                                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
                                             <label htmlFor={`rating-${rating.id}`} className="ml-2 text-sm text-gray-700 flex items-center gap-1 flex-grow">
@@ -368,64 +370,14 @@ const SearchProductPage = () => {
                             )}
                         </div>
 
-                        <div className="p-4 border-b border-gray-200">
-                            <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCategory('shopTypes')}
+                        {/* Apply filters button */}
+                        <div className="p-4">
+                            <button
+                                onClick={applyAllFilters}
+                                className="w-full bg-blue-600 text-white py-2 rounded-md text-sm hover:bg-blue-700"
                             >
-                                <h4 className="font-medium">Loại shop</h4>
-                                {expandedCategories.shopTypes ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </div>
-
-                            {expandedCategories.shopTypes && (
-                                <div className="mt-3 space-y-2">
-                                    {filterOptions.shopTypes.map(shopType => (
-                                        <div key={shopType.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`shop-${shopType.id}`}
-                                                checked={selectedCategories.includes(shopType.id)}
-                                                onChange={() => toggleCategorySelection(shopType.id)}
-                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <label htmlFor={`shop-${shopType.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
-                                                {shopType.name}
-                                            </label>
-                                            <span className="text-xs text-gray-500">({shopType.count})</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-4 border-b border-gray-200">
-                            <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCategory('features')}
-                            >
-                                <h4 className="font-medium">Tính năng đặc biệt</h4>
-                                {expandedCategories.features ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </div>
-
-                            {expandedCategories.features && (
-                                <div className="mt-3 space-y-2">
-                                    {filterOptions.features.map(feature => (
-                                        <div key={feature.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`feature-${feature.id}`}
-                                                checked={selectedCategories.includes(feature.id)}
-                                                onChange={() => toggleCategorySelection(feature.id)}
-                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <label htmlFor={`feature-${feature.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
-                                                {feature.name}
-                                            </label>
-                                            <span className="text-xs text-gray-500">({feature.count})</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                Áp dụng bộ lọc
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -506,10 +458,7 @@ const SearchProductPage = () => {
                                 {selectedCategories.map(id => {
                                     const allFilters = [
                                         ...filterOptions.categories,
-                                        ...filterOptions.brands,
-                                        ...filterOptions.features,
-                                        ...filterOptions.ratings,
-                                        ...filterOptions.shopTypes
+                                        ...filterOptions.ratings
                                     ];
                                     const filter = allFilters.find(f => f.id === id);
 
@@ -540,13 +489,11 @@ const SearchProductPage = () => {
                         )}
                     </div>
 
-                    {/* Grid view */}
+                    {/* Products grid/list view */}
                     {viewMode === 'grid' ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
                             {products.map(product => (
-                                <div key={product.id}>
-                                    <ProductCardItem product={product} />
-                                </div>
+                                <ProductCardItem key={product.id} product={product} />
                             ))}
                         </div>
                     ) : (
@@ -560,7 +507,7 @@ const SearchProductPage = () => {
                                     <div className="flex p-4">
                                         <div className="w-40 h-40 overflow-hidden rounded-lg flex-shrink-0 relative">
                                             <img
-                                                src={product.image}
+                                                src={product.main_image}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover"
                                             />
@@ -577,66 +524,74 @@ const SearchProductPage = () => {
                                         </div>
 
                                         <div className="ml-4 flex-grow">
-                                            <div>
-                                                <h3 className="text-lg font-medium text-gray-800 mb-2 hover:text-blue-600">
-                                                    {product.name}
-                                                </h3>
+                                            <h3 className="text-lg font-medium text-gray-800 mb-2 hover:text-blue-600">
+                                                {product.name}
+                                            </h3>
 
-                                                <div className="flex items-center gap-4 mb-2">
-                                                    <div className="flex items-center">
-                                                        <div className="flex">{renderStars(product.rating)}</div>
-                                                        <span className="ml-1 text-sm text-gray-600">({product.reviewCount})</span>
+                                            <div className="flex items-center gap-4 mb-2">
+                                                <div className="flex items-center">
+                                                    <div className="flex">
+                                                        <Rating
+                                                            initialValue={product.average_rating}
+                                                            size={20}
+                                                            allowFraction
+                                                            readonly
+                                                            SVGstyle={{ display: 'inline-block' }}
+                                                            fillColor="#facc15"
+                                                            emptyColor="#e5e7eb"
+                                                        />
                                                     </div>
-                                                    <div className="text-sm text-gray-600">
-                                                        <span>Đã bán {product.soldCount}</span>
-                                                    </div>
+                                                    <span className="ml-1 text-sm text-gray-600">({product.total_reviews})</span>
                                                 </div>
-
-                                                <div className="flex items-baseline gap-2 mb-2">
-                                                    <div className="text-xl font-bold text-red-600">
-                                                        {formatCurrency(product.price)}
-                                                    </div>
-                                                    {product.originalPrice > product.price && (
-                                                        <div className="text-sm text-gray-500 line-through">
-                                                            {formatCurrency(product.originalPrice)}
-                                                        </div>
-                                                    )}
+                                                <div className="text-sm text-gray-600">
+                                                    <span>Đã bán {product.soldCount}</span>
                                                 </div>
-
-                                                <div className="flex flex-wrap gap-2 mb-3">
-                                                    {product.badges.map((badge, idx) => (
-                                                        <span
-                                                            key={idx}
-                                                            className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded"
-                                                        >
-                                                            {badge}
-                                                        </span>
-                                                    ))}
-                                                    {product.freeShipping && (
-                                                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">
-                                                            Freeship
-                                                        </span>
-                                                    )}
-                                                    {product.shopType === 'shopMall' && (
-                                                        <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
-                                                            Shop Mall
-                                                        </span>
-                                                    )}
-                                                    {product.shopType === 'official' && (
-                                                        <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1rounded">
-                                                            Chính hãng
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                                    {product.stockStatus === 'Hết hàng' ? (
-                                                        <span className="text-red-500">Hết hàng</span>
-                                                    ) : (
-                                                        <span>Còn hàng - Giao hàng trong 24h</span>
-                                                    )}
-                                                </p>
                                             </div>
+
+                                            <div className="flex items-baseline gap-2 mb-2">
+                                                <div className="text-xl font-bold text-red-600">
+                                                    {formatCurrency(product.price)}
+                                                </div>
+                                                {product.originalPrice > product.price && (
+                                                    <div className="text-sm text-gray-500 line-through">
+                                                        {formatCurrency(product.originalPrice)}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {product.badges?.map((badge, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded"
+                                                    >
+                                                        {badge}
+                                                    </span>
+                                                ))}
+                                                {product.freeShipping && (
+                                                    <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">
+                                                        Freeship
+                                                    </span>
+                                                )}
+                                                {product.shopType === 'shopMall' && (
+                                                    <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
+                                                        Shop Mall
+                                                    </span>
+                                                )}
+                                                {product.shopType === 'official' && (
+                                                    <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1rounded">
+                                                        Chính hãng
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm text-gray-600 mb-3">
+                                                {product.stock === 0 ? (
+                                                    <span className="text-red-500">Hết hàng</span>
+                                                ) : (
+                                                    <span>Còn hàng - Giao hàng trong 24h</span>
+                                                )}
+                                            </p>
 
                                             <div className="mt-auto flex items-center gap-2">
                                                 <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
@@ -654,77 +609,243 @@ const SearchProductPage = () => {
                     )}
 
                     {/* Pagination */}
-                    <div className="mt-8 flex justify-center">
-                        <div className="flex items-center">
-                            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100">
-                                <ChevronLeft className="transform " size={16} />
-                            </button>
-
-                            {[1, 2, 3, 4, 5].map(page => (
+                    {pagination.totalPages > 0 && (
+                        <div className="mt-8 flex justify-center">
+                            <div className="flex items-center">
                                 <button
-                                    key={page}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-full mx-1 ${page === 1 ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-100'}`}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                                    onClick={() => pagination.currentPage > 1 && fetchProducts(pagination.currentPage - 1)}
+                                    disabled={pagination.currentPage === 1}
                                 >
-                                    {page}
+                                    <ChevronLeft size={16} />
                                 </button>
-                            ))}
 
-                            <button className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100">
-                                <ChevronRight className="transform " size={16} />
-                            </button>
+                                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                                    let page;
+                                    if (pagination.totalPages <= 5) {
+                                        // Show all pages if total pages <= 5
+                                        page = i + 1;
+                                    } else if (pagination.currentPage <= 3) {
+                                        // Near start
+                                        page = i + 1;
+                                    } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                                        // Near end
+                                        page = pagination.totalPages - 4 + i;
+                                    } else {
+                                        // Middle - show current page and 2 pages on each side
+                                        page = pagination.currentPage - 2 + i;
+                                    }
+
+                                    return (
+                                        <button
+                                            key={page}
+                                            className={`w-10 h-10 flex items-center justify-center rounded-full ${pagination.currentPage === page
+                                                ? 'bg-blue-600 text-white'
+                                                : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
+                                                }`}
+                                            onClick={() => fetchProducts(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                })}
+
+                                <button
+                                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                                    onClick={() => pagination.currentPage < pagination.totalPages && fetchProducts(pagination.currentPage + 1)}
+                                    disabled={pagination.currentPage === pagination.totalPages}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* No products message */}
+                    {products.length === 0 && (
+                        <div className="py-12 text-center">
+                            <h3 className="text-lg font-medium text-gray-800 mb-2">Không tìm thấy sản phẩm nào</h3>
+                            <p className="text-gray-600">Vui lòng thử lại với từ khóa khác hoặc thay đổi bộ lọc tìm kiếm</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Mobile filter drawer */}
             {isFilterOpen && (
-                <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex">
-                    <div className="w-80 bg-white h-full ml-auto overflow-auto">
-                        <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+                <div className="lg:hidden fixed inset-0 z-50 flex">
+                    <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsFilterOpen(false)}></div>
+                    <div className="relative w-80 max-w-full bg-white h-full overflow-auto flex flex-col animate-slide-in-right">
+                        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="font-medium">Bộ lọc tìm kiếm</h3>
                             <button onClick={() => setIsFilterOpen(false)}>
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-4 border-b border-gray-200">
-                            <h4 className="font-medium mb-3">Danh mục</h4>
-                            <div className="space-y-2">
-                                {filterOptions.categories.map(category => (
-                                    <div key={category.id} className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id={`mobile-cat-${category.id}`}
-                                            checked={selectedCategories.includes(category.id)}
-                                            onChange={() => toggleCategorySelection(category.id)}
-                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <label htmlFor={`mobile-cat-${category.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
-                                            {category.name}
-                                        </label>
-                                        <span className="text-xs text-gray-500">({category.count})</span>
+                        {/* Mobile filter content - same as desktop sidebar */}
+                        <div className="flex-grow overflow-auto">
+                            {/* Categories filter */}
+                            <div className="p-4 border-b border-gray-200">
+                                <h4 className="font-medium mb-3">Danh mục</h4>
+                                <div className="space-y-2">
+                                    {filterOptions.categories.map(category => (
+                                        <div key={category.id} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`mobile-cat-${category.id}`}
+                                                checked={tempSelectedCategories.includes(category.id)}
+                                                onChange={() => {
+                                                    setTempSelectedCategories(prev =>
+                                                        prev.includes(category.id)
+                                                            ? prev.filter(item => item !== category.id)
+                                                            : [...prev, category.id]
+                                                    );
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <label htmlFor={`mobile-cat-${category.id}`} className="ml-2 text-sm text-gray-700 flex-grow">
+                                                {category.name}
+                                            </label>
+                                            <span className="text-xs text-gray-500">({category.count})</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Price range filter */}
+                            <div className="p-4 border-b border-gray-200">
+                                <h4 className="font-medium mb-3">Khoảng giá</h4>
+                                <div className="space-y-2">
+                                    {filterOptions.priceRanges.map(range => (
+                                        <div key={range.id} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`mobile-price-${range.id}`}
+                                                checked={!customPriceRange &&
+                                                    tempSelectedPriceRange.length === 2 &&
+                                                    tempSelectedPriceRange[0] === range.min &&
+                                                    tempSelectedPriceRange[1] === range.max}
+                                                onChange={() => {
+                                                    setCustomPriceRange(false);
+                                                    setTempSelectedPriceRange(prev =>
+                                                        prev.length === 2 &&
+                                                            prev[0] === range.min &&
+                                                            prev[1] === range.max
+                                                            ? []
+                                                            : [range.min, range.max]
+                                                    );
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <label htmlFor={`mobile-price-${range.id}`} className="ml-2 text-sm text-gray-700">
+                                                {range.name}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="₫ TỪ"
+                                        value={tempMinPrice}
+                                        onChange={(e) => {
+                                            setTempMinPrice(e.target.value);
+                                            setCustomPriceRange(true);
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    />
+                                    <span className="text-gray-500">-</span>
+                                    <input
+                                        type="text"
+                                        placeholder="₫ ĐẾN"
+                                        value={tempMaxPrice}
+                                        onChange={(e) => {
+                                            setTempMaxPrice(e.target.value);
+                                            setCustomPriceRange(true);
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Ratings filter */}
+                            <div className="p-4 border-b border-gray-200">
+                                <div
+                                    className="flex justify-between items-center cursor-pointer"
+                                    onClick={() => toggleCategory('ratings')}
+                                >
+                                    <h4 className="font-medium">Đánh giá</h4>
+                                    {expandedCategories.ratings ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+
+                                {expandedCategories.ratings && (
+                                    <div className="mt-3 space-y-2">
+                                        {filterOptions.ratings.map(rating => (
+                                            <div key={rating.id} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`mobile-rating-${rating.id}`}
+                                                    checked={tempSelectedRatings.includes(rating.id)}
+                                                    onChange={() => {
+                                                        setTempSelectedRatings(prev =>
+                                                            prev.includes(rating.id)
+                                                                ? prev.filter(item => item !== rating.id)
+                                                                : [...prev, rating.id]
+                                                        );
+                                                    }}
+                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <label htmlFor={`mobile-rating-${rating.id}`} className="ml-2 text-sm text-gray-700 flex items-center gap-1 flex-grow">
+                                                    {rating.name === '5 sao' ? (
+                                                        <div className="flex">
+                                                            {Array(5).fill().map((_, i) => (
+                                                                <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
+                                                            ))}
+                                                        </div>
+                                                    ) : rating.name === '4 sao trở lên' ? (
+                                                        <div className="flex">
+                                                            {Array(4).fill().map((_, i) => (
+                                                                <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
+                                                            ))}
+                                                            <Star size={14} className="text-gray-300" />
+                                                            <span className="ml-1">trở lên</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex">
+                                                            {Array(3).fill().map((_, i) => (
+                                                                <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
+                                                            ))}
+                                                            {Array(2).fill().map((_, i) => (
+                                                                <Star key={i} size={14} className="text-gray-300" />
+                                                            ))}
+                                                            <span className="ml-1">trở lên</span>
+                                                        </div>
+                                                    )}
+                                                </label>
+                                                <span className="text-xs text-gray-500">({rating.count})</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
 
-                        {/* Repeat other filter sections here, similar to desktop */}
-                        {/* Price range, brands, features, etc. */}
-
-                        <div className="p-4 sticky bottom-0 bg-white border-t border-gray-200 flex gap-2">
+                        {/* Filter action buttons */}
+                        <div className="p-4 border-t border-gray-200 flex justify-between">
                             <button
-                                className="flex-1 bg-gray-100 py-2 rounded-lg text-gray-700 font-medium"
-                                onClick={() => {
-                                    clearAllFilters();
-                                    setIsFilterOpen(false);
-                                }}
+                                onClick={clearAllFilters}
+                                className="w-1/2 mr-2 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100"
                             >
-                                Đặt lại
+                                Xóa tất cả
                             </button>
                             <button
-                                className="flex-1 bg-blue-600 py-2 rounded-lg text-white font-medium"
-                                onClick={() => setIsFilterOpen(false)}
+                                onClick={() => {
+                                    applyAllFilters();
+                                    setIsFilterOpen(false);
+                                }}
+                                className="w-1/2 ml-2 bg-blue-600 text-white py-2 rounded-md text-sm hover:bg-blue-700"
                             >
                                 Áp dụng
                             </button>
