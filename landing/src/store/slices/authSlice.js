@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { jwtDecode } from "jwt-decode";
 import authService from '../../services/auth.service';
 import { max } from 'lodash';
+import productService from '../../services/product.service';
 
 // Tạo async thunk để xử lý logic bất đồng bộ
 export const restoreSession = createAsyncThunk(
@@ -21,7 +22,7 @@ export const restoreSession = createAsyncThunk(
             return {
                 accountInfo: response.data,
                 decodedToken,
-                role
+                role,
             };
         } catch (error) {
             localStorage.removeItem('token');
@@ -40,6 +41,7 @@ const initialState = {
     notifications: [],
     wishlistCount: 0,
     cartCount: 0,
+    categories: [],
 };
 
 const authSlice = createSlice({

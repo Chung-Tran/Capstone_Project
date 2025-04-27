@@ -12,6 +12,7 @@ const Header = () => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const { isAuthenticated, userRole, user, cartCount, wishlistCount, notifications } = useSelector((state) => state.auth);
+    const { categories } = useSelector((state) => state.common);
     // Refs for closing dropdowns when clicking outside
     const notificationRef = useRef(null);
     const userMenuRef = useRef(null);
@@ -44,13 +45,6 @@ const Header = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // Categories data
-    const categories = [
-        { name: 'Điện thoại', path: '/dien-thoai' },
-        { name: 'Máy tính', path: '/may-tinh' },
-        { name: 'Thiết bị', path: '/thiet-bi' },
-    ];
 
     // Notifications data
     const notificationsList = [

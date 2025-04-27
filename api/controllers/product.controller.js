@@ -104,38 +104,89 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, category, slug, keyword } = req.query;
-    const query = {};
+    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance' } = req.query;
 
-    if (category && mongoose.isValidObjectId(category)) {
-        query.category_id = { $in: [category] };
+    const query = {};
+    if (categories) {
+        let categoriesQuery = categories.split(',')
+            .map(id => id.trim())
+            .filter(id => mongoose.isValidObjectId(id));
+        if (categoriesQuery.length > 0) {
+            query.category_id = { $in: categoriesQuery };
+        }
     }
-    if (keyword) {
+
+    if (keyword && !query.category_id) {
         query.name = { $regex: keyword, $options: 'i' };
     }
+
     if (slug) {
         query.slug = { $regex: slug, $options: 'i' };
     }
 
-    const products = await Product.find(query)
-        .populate('category_id')
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
+    if (minPrice || maxPrice) {
+        query.price = {};
+        if (minPrice) query.price.$gte = Number(minPrice);
+        if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
 
+    // Xử lý sortOption
+    let sortQuery = {};
+    switch (sortOption) {
+        case 'newest':
+            sortQuery.createdAt = -1; // mới nhất
+            break;
+        case 'bestSeller':
+            sortQuery.quantitySold = -1; // bán chạy nhất
+            break;
+        case 'priceAsc':
+            sortQuery.price = 1; // giá tăng dần
+            break;
+        case 'priceDesc':
+            sortQuery.price = -1; // giá giảm dần
+            break;
+        case 'rating':
+            break;
+        case 'relevance':
+        default:
+            // mặc định không sort gì đặc biệt (theo Mongo)
+            break;
+    }
+
+    let productQuery = Product.find(query)
+        .populate('category_id')
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit));
+
+    if (sortOption !== 'rating') {
+        productQuery = productQuery.sort(sortQuery);
+    }
+
+    const products = await productQuery;
     const total = await Product.countDocuments(query);
 
-    // Gắn rating và reviews cho từng sản phẩm
-    const productsWithRatings = await Promise.all(products.map(async (product) => {
-        const reviews = await Review.find({
-            product_id: product._id,
-            review_type: 'product_review'
-        });
+    const productIds = products.map(p => p._id);
 
-        const totalReviews = reviews.length;
+    const reviews = await Review.find({
+        product_id: { $in: productIds },
+        review_type: 'product_review'
+    });
+
+    const reviewMap = {};
+    reviews.forEach(review => {
+        const pid = review.product_id.toString();
+        if (!reviewMap[pid]) reviewMap[pid] = [];
+        reviewMap[pid].push(review);
+    });
+
+    let productsWithRatings = products.map(product => {
+        const pid = product._id.toString();
+        const productReviews = reviewMap[pid] || [];
+        const totalReviews = productReviews.length;
         let averageRating = 0;
 
         if (totalReviews > 0) {
-            const sumRatings = reviews.reduce((sum, review) => sum + review.rating, 0);
+            const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
             averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
         }
 
@@ -144,14 +195,26 @@ const getProducts = asyncHandler(async (req, res) => {
             average_rating: averageRating,
             total_reviews: totalReviews
         };
-    }));
+    });
+
+    // Lọc theo minRating nếu có
+    if (minRating) {
+        productsWithRatings = productsWithRatings.filter(product => product.average_rating >= Number(minRating));
+    }
+
+    // Nếu sort theo rating thì sort ở đây
+    if (sortOption === 'rating') {
+        productsWithRatings.sort((a, b) => b.average_rating - a.average_rating);
+    }
 
     res.json(formatResponse(true, productsWithRatings, 'Products retrieved successfully', {
-        page: parseInt(page),
+        page: Number(page),
         total,
         totalPages: Math.ceil(total / limit)
     }));
 });
+
+
 
 
 const getProductById = asyncHandler(async (req, res) => {

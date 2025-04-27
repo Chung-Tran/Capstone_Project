@@ -48,6 +48,17 @@ const reviewService = {
       throw new Error(errorInfo.message || 'Không thể gửi phản hồi');
     }
   },
+  getProductListAndReviewsByStoreId: async (storeId, { limit, skip }) => {
+    try {
+      const response = await axiosClient.get(`reviews/store/${storeId}/products`, {
+        params: { limit, skip },
+      });
+      return handleResponse(response);
+    } catch (error) {
+      const errorInfo = handleError(error);
+      throw new Error(errorInfo.message || 'Không thể lấy danh sách sản phẩm và đánh giá');
+    }
+  }
 };
 
 export default reviewService;
