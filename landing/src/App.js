@@ -6,7 +6,6 @@ import Layout from './layouts/Layout';
 import SellerLayout from './layouts/SellerLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import Products from './pages/Products';
 import Checkout from './pages/Checkout';
 import { useSelector } from 'react-redux';
 import Dashboard from './pages/seller/Dashboard';
@@ -33,6 +32,7 @@ import TransactionHistory from './pages/account/TransactionHistory';
 import ShoppingCart from './pages/CartPage';
 import Wishlist from './pages/Wishlist';
 import StorePage from './pages/StorePage';
+import CategoryPage from './pages/CategoryPage';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -105,7 +105,7 @@ const AppRoutes = () => {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/san-pham" element={<Products />} />
+              <Route path="/danh-muc/:cat_id" element={<CategoryPage />} />
               <Route path="/danh-cho-ban" element={<ForYouPage />} />
               <Route path="/san-pham-moi" element={<NewProductsPage />} />
               <Route path="/san-pham/:id" element={<ProductDetailPage />} />

@@ -121,7 +121,7 @@ const Header = () => {
                                         {categories.map((category, index) => (
                                             <Link
                                                 key={index}
-                                                to={category.path}
+                                                to={`/danh-muc/${category._id}`}
                                                 className="block px-4 py-2 text-base text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                                                 onClick={() => setIsCategoryOpen(false)}
                                             >
