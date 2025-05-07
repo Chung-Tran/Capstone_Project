@@ -4,6 +4,7 @@ const { ProductController } = require('../controllers/product.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 const loggingMiddleware = require('../middlewares/loggingMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const productController = require('../controllers/product.controller');
 
 const multiUpload = upload.fields([
     { name: 'main_image', maxCount: 1 },
@@ -26,5 +27,6 @@ router.put('/:id', authMiddleware, multiUpload, ProductController.updateProduct)
 
 
 router.delete('/:id', authMiddleware, ProductController.deleteProduct);
+router.get('/store/:id', ProductController.getStoreById);
 
 module.exports = router;
