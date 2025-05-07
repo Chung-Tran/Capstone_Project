@@ -1,123 +1,158 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Search, ShoppingCart, Heart, Menu, X, ChevronRight, Tag, Star, StarHalf, Clock, Percent } from 'lucide-react';
+import shopService from '../services/shop.service';
+import { useLoading } from '../utils/useLoading';
+import { showToast } from '../utils/toast';
+import { formatCurrency } from '../common/methodsCommon';
 
 export default function StorePage() {
+    const { id: shopId } = useParams();
+    const { setLoading } = useLoading();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState('all');
+    const [shopInfo, setShopInfo] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([
+        { id: 'all', name: 'Tất cả sản phẩm' }
+    ]);
+    const [isFollowing, setIsFollowing] = useState(false);
 
-    const categories = [
-        { id: 'all', name: 'Tất cả sản phẩm' },
-        { id: 'electronics', name: 'Điện tử' },
-        { id: 'fashion', name: 'Thời trang' },
-        { id: 'home', name: 'Đồ gia dụng' },
-        { id: 'beauty', name: 'Làm đẹp' },
-    ];
+    // Lấy thông tin shop và sản phẩm khi component được mount
+    useEffect(() => {
+        if (shopId) {
+            fetchShopData();
+        }
+    }, [shopId]);
 
-    const products = [
-        {
-            id: 1,
-            name: 'Áo thun unisex',
-            price: 190000,
-            discountPrice: 159000,
-            category: 'fashion',
-            rating: 4.5,
-            image: '/api/placeholder/300/300',
-            reviews: 128,
-        },
-        {
-            id: 2,
-            name: 'Tai nghe không dây',
-            price: 690000,
-            discountPrice: 549000,
-            category: 'electronics',
-            rating: 4.8,
-            image: '/api/placeholder/300/300',
-            reviews: 256,
-        },
-        {
-            id: 3,
-            name: 'Nồi chiên không dầu',
-            price: 1290000,
-            discountPrice: 990000,
-            category: 'home',
-            rating: 4.7,
-            image: '/api/placeholder/300/300',
-            reviews: 89,
-        },
-        {
-            id: 4,
-            name: 'Kem dưỡng da',
-            price: 450000,
-            discountPrice: 379000,
-            category: 'beauty',
-            rating: 4.6,
-            image: '/api/placeholder/300/300',
-            reviews: 75,
-        },
-        {
-            id: 5,
-            name: 'Quần jeans nam',
-            price: 390000,
-            discountPrice: 290000,
-            category: 'fashion',
-            rating: 4.3,
-            image: '/api/placeholder/300/300',
-            reviews: 64,
-        },
-        {
-            id: 6,
-            name: 'Máy lọc không khí',
-            price: 2590000,
-            discountPrice: 1990000,
-            category: 'home',
-            rating: 4.9,
-            image: '/api/placeholder/300/300',
-            reviews: 42,
-        },
-        {
-            id: 7,
-            name: 'Mặt nạ dưỡng ẩm',
-            price: 35000,
-            discountPrice: 25000,
-            category: 'beauty',
-            rating: 4.2,
-            image: '/api/placeholder/300/300',
-            reviews: 129,
-        },
-        {
-            id: 8,
-            name: 'Điện thoại thông minh',
-            price: 7990000,
-            discountPrice: 6990000,
-            category: 'electronics',
-            rating: 4.7,
-            image: '/api/placeholder/300/300',
-            reviews: 312,
-        },
-    ];
+    // Lấy dữ liệu shop và sản phẩm
+    const fetchShopData = async () => {
+        setLoading(true);
+        try {
+            // Lấy thông tin shop
+            const shopResponse = await shopService.getShopById(shopId);
+            if (shopResponse.isSuccess) {
+                setShopInfo(shopResponse.data);
+                // Kiểm tra người dùng có đang theo dõi shop không
+                setIsFollowing(shopResponse.data.isFollowing || false);
+                
+                // Lấy danh mục sản phẩm của shop
+                if (shopResponse.data.categories && shopResponse.data.categories.length > 0) {
+                    const shopCategories = [
+                        { id: 'all', name: 'Tất cả sản phẩm' },
+                        ...shopResponse.data.categories.map(cat => ({
+                            id: cat._id || cat.id,
+                            name: cat.name
+                        }))
+                    ];
+                    setCategories(shopCategories);
+                }
+            } else {
+                showToast.error('Không thể tải thông tin cửa hàng');
+            }
 
-
-    const shopInfo = {
-        name: 'TechStyle Shop',
-        logo: '/api/placeholder/80/80',
-        banner: '/api/placeholder/1200/300',
-        established: '2018',
-        rating: 4.8,
-        followers: 15400,
-        description: 'TechStyle Shop - Nơi công nghệ gặp phong cách. Chúng tôi cung cấp các sản phẩm chất lượng cao với giá cả hợp lý. Cam kết hàng chính hãng và dịch vụ khách hàng tận tâm.',
-        location: 'Quận 1, Thành phố Hồ Chí Minh',
-        operatingHours: '8:00 - 21:00 (Thứ 2 - Chủ nhật)',
+            // Lấy sản phẩm của shop
+            const productsResponse = await shopService.getShopProducts(shopId);
+            if (productsResponse.isSuccess) {
+                const productsData = productsResponse.data.products || productsResponse.data || [];
+                
+                // Đảm bảo chỉ lấy sản phẩm của shop này
+                const filteredProducts = productsData.filter(product => {
+                    // Kiểm tra store_id có thể là chuỗi hoặc object với _id
+                    const productStoreId = typeof product.store_id === 'object' 
+                        ? product.store_id?._id 
+                        : product.store_id;
+                    
+                    return productStoreId === shopId;
+                });
+                
+                console.log(`Filtered from ${productsData.length} to ${filteredProducts.length} products`);
+                setProducts(filteredProducts);
+            } else {
+                showToast.error('Không thể tải danh sách sản phẩm');
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải dữ liệu shop:', error);
+            showToast.error('Đã xảy ra lỗi khi tải dữ liệu cửa hàng');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const filteredProducts = activeCategory === 'all'
-        ? products
-        : products.filter(product => product.category === activeCategory);
-
-
-    const handleCategoryClick = (categoryId) => {
+    // Xử lý khi người dùng chọn danh mục
+    const handleCategoryClick = async (categoryId) => {
         setActiveCategory(categoryId);
         if (isMenuOpen) {
             setIsMenuOpen(false);
+        }
+
+        setLoading(true);
+        try {
+            // Lấy sản phẩm theo danh mục được chọn
+            const params = categoryId === 'all' ? {} : { category_id: categoryId };
+            const productsResponse = await shopService.getShopProducts(shopId, params);
+            if (productsResponse.isSuccess) {
+                const productsData = productsResponse.data.products || productsResponse.data || [];
+                
+                // Đảm bảo chỉ lấy sản phẩm của shop này
+                const filteredProducts = productsData.filter(product => {
+                    // Kiểm tra store_id có thể là chuỗi hoặc object với _id
+                    const productStoreId = typeof product.store_id === 'object' 
+                        ? product.store_id?._id 
+                        : product.store_id;
+                    
+                    return productStoreId === shopId;
+                });
+                
+                console.log(`Category ${categoryId}: Filtered from ${productsData.length} to ${filteredProducts.length} products`);
+                setProducts(filteredProducts);
+            } else {
+                showToast.error('Không thể tải danh sách sản phẩm');
+            }
+        } catch (error) {
+            console.error('Lỗi khi lọc sản phẩm theo danh mục:', error);
+            showToast.error('Đã xảy ra lỗi khi lọc sản phẩm');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Xử lý khi người dùng theo dõi hoặc bỏ theo dõi shop
+    const handleFollowToggle = async () => {
+        try {
+            setLoading(true);
+            if (isFollowing) {
+                const response = await shopService.unfollowShop(shopId);
+                if (response.isSuccess) {
+                    setIsFollowing(false);
+                    // Cập nhật số lượng người theo dõi
+                    setShopInfo(prev => ({
+                        ...prev,
+                        followers: (prev.followers || 0) - 1
+                    }));
+                    showToast.success('Đã bỏ theo dõi cửa hàng');
+                } else {
+                    showToast.error('Không thể bỏ theo dõi cửa hàng');
+                }
+            } else {
+                const response = await shopService.followShop(shopId);
+                if (response.isSuccess) {
+                    setIsFollowing(true);
+                    // Cập nhật số lượng người theo dõi
+                    setShopInfo(prev => ({
+                        ...prev,
+                        followers: (prev.followers || 0) + 1
+                    }));
+                    showToast.success('Đã theo dõi cửa hàng');
+                } else {
+                    showToast.error('Không thể theo dõi cửa hàng');
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi khi theo dõi/bỏ theo dõi shop:', error);
+            showToast.error('Đã xảy ra lỗi');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -137,33 +172,43 @@ export default function StorePage() {
         return stars;
     };
 
-    function formatPrice(price) {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND',
-            maximumFractionDigits: 0
-        }).format(price);
-    }
-
     const calculateDiscount = (original, discounted) => {
+        if (!original || !discounted || original <= discounted) return 0;
         return Math.round(((original - discounted) / original) * 100);
     };
+
+    // Nếu chưa có dữ liệu shop thì hiển thị loading hoặc placeholder
+    if (!shopInfo) {
+        return (
+            <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+                <p className="text-gray-500">Đang tải thông tin cửa hàng...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">
             <div className="relative rounded-xl overflow-hidden mb-8">
-                <img src={shopInfo.banner} alt="Shop Banner" className="w-full h-64 object-cover" />
+                <img 
+                    src={shopInfo.banner || '/api/placeholder/1200/300'} 
+                    alt="Shop Banner" 
+                    className="w-full h-64 object-cover" 
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
                 <div className="absolute bottom-0 left-0 p-6">
                     <div className="flex items-center mb-2">
-                        <img src={shopInfo.logo} alt="Shop Logo" className="h-16 w-16 rounded-full border-4 border-white" />
+                        <img 
+                            src={shopInfo.store_logo || '/api/placeholder/80/80'} 
+                            alt="Shop Logo" 
+                            className="h-16 w-16 rounded-full border-4 border-white" 
+                        />
                         <div className="ml-4">
-                            <h2 className="text-2xl font-bold text-white">{shopInfo.name}</h2>
+                            <h2 className="text-2xl font-bold text-white">{shopInfo.store_name}</h2>
                             <div className="flex items-center mt-1">
                                 <div className="flex">
-                                    {renderRatingStars(shopInfo.rating)}
+                                    {renderRatingStars(shopInfo.average_rating || 0)}
                                 </div>
-                                <span className="ml-2 text-white">{shopInfo.rating} ({shopInfo.followers.toLocaleString()} người theo dõi)</span>
+                                <span className="ml-2 text-white">{shopInfo.average_rating || 0} ({shopInfo.followers?.toLocaleString() || 0} người theo dõi)</span>
                             </div>
                         </div>
                     </div>
@@ -177,23 +222,30 @@ export default function StorePage() {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <h3 className="text-lg font-semibold mb-4">Thông tin cửa hàng</h3>
                         <div className="space-y-4">
-                            <p className="text-gray-700">{shopInfo.description}</p>
+                            <p className="text-gray-700">{shopInfo.description || 'Chưa có mô tả'}</p>
                             <div className="flex items-start">
                                 <div className="text-gray-500 mr-2 mt-1">📍</div>
-                                <p className="text-gray-700">{shopInfo.location}</p>
+                                <p className="text-gray-700">{shopInfo.address || 'Không có địa chỉ'}</p>
                             </div>
                             <div className="flex items-start">
                                 <div className="text-gray-500 mr-2 mt-1">🕒</div>
-                                <p className="text-gray-700">{shopInfo.operatingHours}</p>
+                                <p className="text-gray-700">{shopInfo.operating_hours || '8:00 - 21:00 (Thứ 2 - Chủ nhật)'}</p>
                             </div>
                             <div className="flex items-start">
                                 <div className="text-gray-500 mr-2 mt-1">📅</div>
-                                <p className="text-gray-700">Hoạt động từ năm {shopInfo.established}</p>
+                                <p className="text-gray-700">Hoạt động từ năm {shopInfo.established_year || new Date().getFullYear()}</p>
                             </div>
                         </div>
                         <div className="mt-6">
-                            <button className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">
-                                Theo dõi Shop
+                            <button 
+                                onClick={handleFollowToggle}
+                                className={`w-full font-semibold py-2 px-4 rounded-lg transition ${
+                                    isFollowing 
+                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                            >
+                                {isFollowing ? 'Đang theo dõi' : 'Theo dõi Shop'}
                             </button>
                         </div>
                     </div>
@@ -208,10 +260,11 @@ export default function StorePage() {
                                 <button
                                     key={category.id}
                                     onClick={() => handleCategoryClick(category.id)}
-                                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${activeCategory === category.id
+                                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                                        activeCategory === category.id
                                         ? 'bg-blue-100 text-blue-600 font-medium'
                                         : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
+                                    }`}
                                 >
                                     {category.name}
                                 </button>
@@ -221,51 +274,65 @@ export default function StorePage() {
 
                     {/* Products Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredProducts.map(product => (
-                            <div key={product.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition">
-                                <div className="relative">
-                                    <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-                                    <div className="absolute top-2 right-2">
-                                        <button className="h-8 w-8 flex items-center justify-center bg-white rounded-full shadow">
-                                            <Heart size={16} className="text-gray-400 hover:text-red-500" />
-                                        </button>
-                                    </div>
-                                    {product.price > product.discountPrice && (
-                                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                            -{calculateDiscount(product.price, product.discountPrice)}%
+                        {products && products.length > 0 ? (
+                            products.map(product => (
+                                <div key={product._id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition">
+                                    <div className="relative">
+                                        <img 
+                                            src={product.main_image || '/api/placeholder/300/300'} 
+                                            alt={product.name} 
+                                            className="w-full h-48 object-cover" 
+                                        />
+                                        <div className="absolute top-2 right-2">
+                                            <button className="h-8 w-8 flex items-center justify-center bg-white rounded-full shadow">
+                                                <Heart size={16} className="text-gray-400 hover:text-red-500" />
+                                            </button>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="font-medium text-gray-800 mb-1 line-clamp-2 h-12">{product.name}</h3>
-                                    <div className="mb-2">
-                                        <span className="font-bold text-lg text-red-600">{formatPrice(product.discountPrice)}</span>
-                                        {product.price > product.discountPrice && (
-                                            <span className="text-sm text-gray-500 line-through ml-2">{formatPrice(product.price)}</span>
+                                        {product.original_price && product.price < product.original_price && (
+                                            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                                -{calculateDiscount(product.original_price, product.price)}%
+                                            </div>
                                         )}
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="flex">
-                                                {renderRatingStars(product.rating)}
-                                            </div>
-                                            <span className="ml-1 text-xs text-gray-500">({product.reviews})</span>
+                                    <div className="p-4">
+                                        <h3 className="font-medium text-gray-800 mb-1 line-clamp-2 h-12">{product.name}</h3>
+                                        <div className="mb-2">
+                                            <span className="font-bold text-lg text-red-600">{formatCurrency(product.price)}</span>
+                                            {product.original_price && product.original_price > product.price && (
+                                                <span className="text-sm text-gray-500 line-through ml-2">
+                                                    {formatCurrency(product.original_price)}
+                                                </span>
+                                            )}
                                         </div>
-                                        <button className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700">
-                                            + Giỏ hàng
-                                        </button>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="flex">
+                                                    {renderRatingStars(product.average_rating || 0)}
+                                                </div>
+                                                <span className="ml-1 text-xs text-gray-500">({product.total_reviews || 0})</span>
+                                            </div>
+                                            <button className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700">
+                                                + Giỏ hàng
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 py-12 text-center text-gray-500">
+                                Không có sản phẩm nào trong danh mục này
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     {/* Load More Button */}
-                    <div className="mt-8 flex justify-center">
-                        <button className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-medium">
-                            Xem thêm sản phẩm
-                        </button>
-                    </div>
+                    {products && products.length > 9 && (
+                        <div className="mt-8 flex justify-center">
+                            <button className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-medium">
+                                Xem thêm sản phẩm
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

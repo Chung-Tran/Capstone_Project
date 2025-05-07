@@ -396,7 +396,38 @@ const getProductNew = asyncHandler(async (req, res) => {
         res.status(500).json(formatResponse(false, null, "Lỗi server"));
     }
 });
+const getStoreById = asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400);
+        throw new Error('ID cửa hàng không hợp lệ');
+    }
 
+    const store = await Store.findById(req.params.id).lean();
+    if (!store) {
+        res.status(404);
+        throw new Error('Không tìm thấy cửa hàng');
+    }
+
+    const totalProduct = await Product.countDocuments({ store_id: store._id, status: 'active' });
+
+    const shopReviews = await Review.find({ store_id: store._id, review_type: 'shop_review' });
+    const totalShopReviews = shopReviews.length;
+    let averageRating = 0;
+
+    if (totalShopReviews > 0) {
+        const sumRatings = shopReviews.reduce((sum, review) => sum + review.rating, 0);
+        averageRating = parseFloat((sumRatings / totalShopReviews).toFixed(1));
+    }
+
+    const response = {
+        ...store,
+        totalProduct,
+        total_reviews: totalShopReviews,
+        average_rating: averageRating,
+    };
+
+    res.json(formatResponse(true, response, 'Store retrieved successfully'));
+});
 module.exports = {
     ProductController: {
         createProduct,
@@ -407,5 +438,6 @@ module.exports = {
         getProductByStoreId,
         getProductFeatured,
         getProductNew,
+        getStoreById,
     }
 };

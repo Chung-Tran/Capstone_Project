@@ -11,6 +11,7 @@ const { generateToken } = require('../services/jwtService');
 const { uploadImage } = require('../services/uploadService');
 const upload = require('../middlewares/uploadMiddleware');
 const bcrypt = require('bcryptjs');
+
 const sendRegistrationOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
@@ -209,7 +210,6 @@ const updateCustomerProfile = asyncHandler(async (req, res) => {
     }
     if (customer) {
         customer.fullName = req.body.fullName || customer.fullName;
-        // customer.email = req.body.email || customer.email;
         customer.phone = req.body.phone || customer.phone;
         customer.address = req.body.address || customer.address;
         customer.birthDate = req.body.birthDate || customer.birthDate;
@@ -378,7 +378,94 @@ const saveVoucher = asyncHandler(async (req, res) => {
     await customer.save();
 
     res.json(formatResponse(true, {}, 'Voucher saved successfully'));
-})
+});
+
+const followShop = asyncHandler(async (req, res) => {
+    const { shopId } = req.params;
+    const user = req.user;
+
+    // Validate shop exists
+    const shop = await Store.findById(shopId);
+    if (!shop) {
+        res.status(404);
+        throw new Error('Shop not found');
+    }
+
+    // Fetch customer and ensure followed_shops is initialized
+    const customer = await Customer.findById(user._id);
+    if (!customer) {
+        res.status(404);
+        throw new Error('Customer not found');
+    }
+
+    // Initialize followed_shops if undefined
+    if (!customer.followed_shops) {
+        customer.followed_shops = [];
+    }
+
+    // Check if already following
+    if (customer.followed_shops.includes(shopId)) {
+        res.status(400);
+        throw new Error('You are already following this shop');
+    }
+
+    // Update customer's followed shops
+    customer.followed_shops.push(shopId);
+    await customer.save();
+
+    // Update shop's follower count
+    await Store.findByIdAndUpdate(
+        shopId,
+        { $inc: { follower_count: 1 } },
+        { new: true }
+    );
+
+    res.json(formatResponse(true, {}, 'Successfully followed shop'));
+});
+
+const unfollowShop = asyncHandler(async (req, res) => {
+    const { shopId } = req.params;
+    const user = req.user;
+
+    // Validate shop exists
+    const shop = await Store.findById(shopId);
+    if (!shop) {
+        res.status(404);
+        throw new Error('Shop not found');
+    }
+
+    // Fetch customer and ensure followed_shops is initialized
+    const customer = await Customer.findById(user._id);
+    if (!customer) {
+        res.status(404);
+        throw new Error('Customer not found');
+    }
+
+    // Initialize followed_shops if undefined
+    if (!customer.followed_shops) {
+        customer.followed_shops = [];
+    }
+
+    // Check if not following
+    if (!customer.followed_shops.includes(shopId)) {
+        res.status(400);
+        throw new Error('You are not following this shop');
+    }
+
+    // Remove shop from customer's followed shops
+    customer.followed_shops = customer.followed_shops.filter(id => id.toString() !== shopId);
+    await customer.save();
+
+    // Decrease shop's follower count
+    await Store.findByIdAndUpdate(
+        shopId,
+        { $inc: { follower_count: -1 } },
+        { new: true }
+    );
+
+    res.json(formatResponse(true, {}, 'Successfully unfollowed shop'));
+});
+
 module.exports = {
     CustomerController: {
         sendRegistrationOTP,
@@ -391,6 +478,8 @@ module.exports = {
         updateShopInfo,
         getAccountInfo,
         updatePassword,
-        saveVoucher
+        saveVoucher,
+        followShop,
+        unfollowShop
     }
-}; 
+};
