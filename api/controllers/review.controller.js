@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Review = require('../models/review.model');
-const Product = require('../models/product.model'); // Giả định model Product
+const Product = require('../models/product.model');
 const formatResponse = require('../middlewares/responseFormat');
 const { uploadImage } = require('../services/uploadService');
 const mongoose = require('mongoose');
@@ -141,6 +141,8 @@ const replyToReview = asyncHandler(async (req, res) => {
 
 
 //--------------Các api lấy review của admin sẽ viết dưới này------------------//
+
+
 //API lấy danh sách sản phẩm kèm thông tin đánh giá tổng quan
 const getProductListWithReviewStats = asyncHandler(async (req, res) => {
     const { store_id } = req.params;

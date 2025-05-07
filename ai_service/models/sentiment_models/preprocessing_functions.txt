@@ -1,0 +1,72 @@
+# Function: clean_text
+def clean_text(text):
+    # Xử lý chuyển số thành văn bản
+    words = text.split()
+    cleaned_words = []
+    for word in words:
+        try:
+            # Nếu từ kết thúc bằng dấu chấm, loại bỏ dấu chấm và xử lý số
+            if word.endswith( '.' ):
+                num = int(word.replace( ',' , '' )[:-1])
+                word = num2words(num, lang= 'vi' ) + '.' 
+            else:
+                # Nếu từ chứa dấu phẩy, loại bỏ dấu phẩy và xử lý số
+                if ',' in word:
+                    word = num2words(float(word), lang= 'vi' )
+                elif '.' in word:
+                    parts = word.split( '.' ) 
+                    num = '' .join(parts[0:])
+                    word = num2words(int(num), lang= 'vi' )
+                else:
+                    num = int(word)
+                    word = num2words(num, lang= 'vi' )
+        except ValueError:
+            # Nếu không thể chuyển đổi, giữ nguyên từ
+            pass
+        cleaned_words.append(word)
+    
+    # Kết hợp các từ thành câu
+    cleaned_text = ' ' .join(cleaned_words)
+    
+    # Đường dẫn đến tệp chứa từ điển tâm lý (VietSentWordnet 1.0)
+    file_path = "/kaggle/input/vietsentiwordnet-ver1-0/VietSentiWordnet_ver1.0.txt"
+
+    cleaned_text = lowercase(cleaned_text)
+    cleaned_text = process_emojis(cleaned_text)
+    cleaned_text = remove_elongated_chars(cleaned_text)
+    cleaned_text = normalize_unicode(cleaned_text)
+    cleaned_text = normalize_stars(cleaned_text)
+    cleaned_text = normalize_sentiment_words(cleaned_text)
+    sentiment_lexicon = load_sentiment_lexicon(file_path)
+    cleaned_text = handle_negation(cleaned_text, sentiment_lexicon)
+    cleaned_text = remove_punctuation(cleaned_text)
+    #remove nốt những ký tự thừa thãi
+    cleaned_text = cleaned_text.replace(u'  ', u' ')
+    cleaned_text = cleaned_text.replace(u'"', u' ')
+    cleaned_text = cleaned_text.replace(u'️', u'')
+    
+    return cleaned_text
+
+
+# Function: remove_diacritics
+def remove_diacritics(text):
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if not unicodedata.combining(c))
+    return text
+
+
+# Function: process_label
+def process_label(label):
+    label = label.replace("{", "")
+    parts = label.strip("}").split(";")
+    categories = []
+    sentiments = []
+    for part in parts:
+        if "#" in part:
+            category, sentiment = part.split("#")
+            sentiment = sentiment.replace("}", "")
+            categories.append(category)
+            sentiments.append(sentiment)
+    return pd.Series([categories, sentiments])
+
+

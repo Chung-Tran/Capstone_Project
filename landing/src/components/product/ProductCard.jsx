@@ -83,9 +83,12 @@ const ProductCardItem = ({ product }) => {
                 </div>
 
                 {/* Product name */}
-                <h3 className="font-medium text-gray-800 mb-1 truncate hover:text-blue-600 transition-colors">
+                <a href={`/san-pham/${item._id}`} className="block mb-2 text-gray-800 hover:text-blue-600 transition-colors">
+                    <h3 className="font-medium text-gray-800 mb-1 truncate">{item.name}</h3>
+                </a>
+                {/* <h3 className="font-medium text-gray-800 mb-1 truncate hover:text-blue-600 transition-colors">
                     {item.name}
-                </h3>
+                </h3> */}
 
                 {/* Price */}
                 <div className="flex items-center gap-2 mb-2">
