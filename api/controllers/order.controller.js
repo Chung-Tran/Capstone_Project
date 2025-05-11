@@ -1,10 +1,11 @@
 const asyncHandler = require('express-async-handler');
 const Order = require('../models/order.model');
 const OrderItem = require('../models/orderItem.model');
+const CustomerItems = require('../models/customerItems.model');
 const formatResponse = require('../middlewares/responseFormat');
 
 const createOrder = asyncHandler(async (req, res) => {
-    const { items, shipping_address, payment_method } = req.body;
+    const { items, address, payment_method, total, receiverName, receiverPhone } = req.body;
     const customer_id = req.user.id;
 
     const orderCount = await Order.countDocuments();
@@ -12,34 +13,49 @@ const createOrder = asyncHandler(async (req, res) => {
 
     let subtotal = 0;
     for (const item of items) {
-        subtotal += item.quantity * item.unit_price;
-    }
+        subtotal += item.quantity * item.product_id.price;
 
+    }
+    if (subtotal != total) { //Total từ frontend không khớp với tổng tiền hàng 
+        throw new Error('Đã xảy ra lỗi trong quá trình thanh toán');
+    }
     const shipping_fee = 10;
     const tax_amount = subtotal * 0.1;
-    const total_amount = subtotal + shipping_fee + tax_amount;
+    const total_amount = subtotal;
 
     const order = await Order.create({
         order_code,
         customer_id,
-        shipping_address,
+        address,
         payment_method,
         subtotal,
         shipping_fee,
         tax_amount,
-        total_amount
+        total_amount,
+        shipping_method: 'standard',
+        payment_status: 'pending',
+        receiverName,
+        receiverPhone,
+        notes: "fake notes"
     });
 
     if (order) {
         const orderItems = await Promise.all(
             items.map(item => OrderItem.create({
                 order_id: order._id,
-                product_id: item.product_id,
+                product_id: item.product_id._id,
                 quantity: item.quantity,
-                unit_price: item.unit_price,
-                total_price: item.quantity * item.unit_price
+                // unit_price: item.unit_price,
+                total_price: item.quantity * item.product_id.price,
+                status: 'active',
+                unit_price: item.product_id.price,
             }))
         );
+        //delete from cart
+        await CustomerItems.deleteMany({
+            customer_id,
+            type: 'cart'
+        });
 
         res.status(201).json(formatResponse(true, {
             _id: order._id,
