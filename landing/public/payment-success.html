@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thanh toán thành công</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding-top: 100px;
+        }
+
+        .message {
+            font-size: 24px;
+            color: #28a745;
+        }
+
+        .sub-message {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="message">🎉 Thanh toán thành công!</div>
+    <div class="sub-message">Bạn sẽ được quay lại trang chính sau 5 giây...</div>
+
+    <script>
+        setTimeout(() => {
+            window.close();
+        }, 5000);
+    </script>
+</body>
+
+</html>
