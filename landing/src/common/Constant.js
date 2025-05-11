@@ -13,3 +13,12 @@ export const sortOptions = [
     { id: 'priceDesc', name: 'Giá giảm dần' },
     { id: 'rating', name: 'Đánh giá cao' },
 ];
+export const PAYMENT_STATUS = {
+    DRAFT: 'draft',
+    SUCCESSED: 'success',
+    FAILED: 'failed',
+};
+export const POLLING_CONFIG = {
+    INTERVAL: 2000, // 2 seconds
+    TIMEOUT: 300000, // 5 minutes
+};

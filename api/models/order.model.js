@@ -11,19 +11,26 @@ const orderSchema = new mongoose.Schema({
         ref: 'Customer',
         required: true
     },
-    total_amount: {
+    total_amount: { //Tổng tiền đơn hàng(ship+tax+discount(nếu có)+subtotal)
         type: Number,
         required: true
     },
-    subtotal: Number,
+    receiverName: String, //Tên người nhận
+    receiverPhone: String, //Số điện thoại người nhận
+    subtotal: Number, //Tổng tiền hàng
     tax_amount: Number,
     shipping_fee: Number,
     discount_amount: Number,
+    address: String,
     payment_method: String,
     payment_status: {
         type: String,
         enum: ['pending', 'success', 'failed'],
         default: 'pending'
+    },
+    payment_transaction_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Transaction'
     },
     shipping_method: {
         type: String,
@@ -35,13 +42,6 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
         default: 'pending'
-    },
-    shipping_address: {
-        street: String,
-        city: String,
-        state: String,
-        postal_code: String,
-        country: String
     },
     billing_address: {
         street: String,
