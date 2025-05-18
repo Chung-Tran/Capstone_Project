@@ -1,5 +1,25 @@
 const mongoose = require('mongoose');
 
+const replySchema = new mongoose.Schema({
+    content: {
+        type: String,
+        required: true
+    },
+    seller_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Seller',
+        required: true
+    },
+    replied_at: {
+        type: Date,
+        default: Date.now
+    },
+    status: {
+        type: String,
+        default: 'active'
+    }
+});
+
 const reviewSchema = new mongoose.Schema({
     review_type: {
         type: String,
@@ -26,10 +46,7 @@ const reviewSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    reply: {
-        content: String,
-        replied_at: Date,
-    },
+    replies: [replySchema], // Changed from single reply to array of replies
     title: String,
     status: {
         type: String,

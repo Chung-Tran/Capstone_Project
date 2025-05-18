@@ -1,7 +1,6 @@
 import { handleError, handleResponse } from "../common/methodsCommon";
 import axiosClient from "../config/axios";
 
-// Cache object để lưu trữ response theo store id
 const cache = {};
 
 const shopService = {
@@ -19,7 +18,6 @@ const shopService = {
     },
     
     getShopById: async (id) => {
-        // Kiểm tra cache
         const cacheKey = `store_${id}`;
         if (cache[cacheKey]) {
             console.log(`Returning cached data for store id: ${id}`);
@@ -31,7 +29,6 @@ const shopService = {
             const response = await axiosClient.get(`/products/store/${id}`);
             const result = handleResponse(response);
             
-            // Lưu vào cache nếu request thành công
             if (result.isSuccess) {
                 cache[cacheKey] = result;
             }
@@ -43,21 +40,13 @@ const shopService = {
         }
     },
 
-    // Thêm phương thức getShopProducts
     getShopProducts: async (shopId, params = {}) => {
         const cacheKey = `products_${shopId}_${JSON.stringify(params)}`;
-        
-        // Kiểm tra cache (tùy chọn - có thể bỏ cache cho products để luôn lấy dữ liệu mới)
-        // if (cache[cacheKey]) {
-        //     console.log(`Returning cached products for shop id: ${shopId}`);
-        //     return cache[cacheKey];
-        // }
         
         try {
             console.log(`Fetching products for shop id: ${shopId}`, params);
             const queryParams = new URLSearchParams();
             
-            // Thêm các tham số tìm kiếm vào URL
             Object.entries(params).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
                     queryParams.append(key, value);
@@ -70,7 +59,6 @@ const shopService = {
             const response = await axiosClient.get(url);
             const result = handleResponse(response);
             
-            // Lưu vào cache nếu request thành công
             if (result.isSuccess) {
                 cache[cacheKey] = result;
             }
@@ -82,25 +70,47 @@ const shopService = {
         }
     },
     
-    // Thêm phương thức để theo dõi shop
-    followShop: async (shopId) => {
-        try {
-            const response = await axiosClient.post(`/customers/shop/follow/${shopId}`);
-            return handleResponse(response);
-        } catch (error) {
-            throw handleError(error);
-        }
-    },
-    
-    // Thêm phương thức để bỏ theo dõi shop
-    unfollowShop: async (shopId) => {
-        try {
-            const response = await axiosClient.delete(`/customers/shop/follow/${shopId}`);
-            return handleResponse(response);
-        } catch (error) {
-            throw handleError(error);
-        }
+    followShop: async (storeId) => {
+    try {
+      const response = await axiosClient.post(`/follow/${storeId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Lỗi khi theo dõi cửa hàng với ID: ${storeId}`, error);
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || 'Lỗi khi theo dõi cửa hàng',
+        status: error.response?.status,
+      };
     }
+  },
+
+  unfollowShop: async (storeId) => {
+    try {
+      const response = await axiosClient.delete(`/follow/${storeId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Lỗi khi bỏ theo dõi cửa hàng với ID: ${storeId}`, error);
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || 'Lỗi khi bỏ theo dõi cửa hàng',
+        status: error.response?.status,
+      };
+    }
+  },
+
+  checkFollowStatus: async (storeId) => {
+    try {
+      const response = await axiosClient.get(`/follow/${storeId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Lỗi khi kiểm tra trạng thái theo dõi cho cửa hàng với ID: ${storeId}`, error);
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || 'Lỗi khi kiểm tra trạng thái theo dõi',
+        status: error.response?.status,
+     };
+    }
+  },
 };
 
 export default shopService;

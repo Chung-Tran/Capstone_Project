@@ -13,19 +13,16 @@ export default function StorePage() {
     const [activeCategory, setActiveCategory] = useState('all');
     const [shopInfo, setShopInfo] = useState(null);
     const [products, setProducts] = useState([]);
-    const [categories, setCategories] = useState([
-        { id: 'all', name: 'Tất cả sản phẩm' }
-    ]);
+    const [categories, setCategories] = useState([{ id: 'all', name: 'Tất cả sản phẩm' }]);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
 
-    // Lấy thông tin shop và sản phẩm khi component được mount
     useEffect(() => {
         if (shopId) {
             fetchShopData();
         }
     }, [shopId]);
 
-    // Lấy dữ liệu shop và sản phẩm
     const fetchShopData = async () => {
         setLoading(true);
         try {
@@ -33,10 +30,31 @@ export default function StorePage() {
             const shopResponse = await shopService.getShopById(shopId);
             if (shopResponse.isSuccess) {
                 setShopInfo(shopResponse.data);
-                // Kiểm tra người dùng có đang theo dõi shop không
-                setIsFollowing(shopResponse.data.isFollowing || false);
+                setFollowersCount(shopResponse.data.followers?.length || 0);
                 
-                // Lấy danh mục sản phẩm của shop
+                // Kiểm tra trạng thái follow
+                if (shopResponse.data.owner_id) {
+                    try {
+                        const followStatusResponse = await shopService.checkFollowStatus(shopResponse.data.owner_id);
+                        if (followStatusResponse.isSuccess) {
+                            setIsFollowing(followStatusResponse.data.isFollowing);
+                            setFollowersCount(followStatusResponse.data.followersCount);
+                        } else {
+                            console.warn('Follow status check failed:', followStatusResponse.message);
+                            setIsFollowing(false);
+                            showToast.error(followStatusResponse.message || 'Không thể kiểm tra trạng thái theo dõi');
+                        }
+                    } catch (error) {
+                        console.warn('Không thể kiểm tra trạng thái theo dõi:', error.message);
+                        setIsFollowing(false);
+                        showToast.error('Không thể kiểm tra trạng thái theo dõi: ' + error.message);
+                    }
+                } else {
+                    setIsFollowing(false);
+                    showToast.error('Không thể kiểm tra trạng thái theo dõi do thiếu ID chủ cửa hàng');
+                }
+                
+                // Lấy danh mục sản phẩm
                 if (shopResponse.data.categories && shopResponse.data.categories.length > 0) {
                     const shopCategories = [
                         { id: 'all', name: 'Tất cả sản phẩm' },
@@ -48,38 +66,32 @@ export default function StorePage() {
                     setCategories(shopCategories);
                 }
             } else {
-                showToast.error('Không thể tải thông tin cửa hàng');
+                showToast.error(shopResponse.message || 'Không thể tải thông tin cửa hàng');
             }
 
             // Lấy sản phẩm của shop
             const productsResponse = await shopService.getShopProducts(shopId);
             if (productsResponse.isSuccess) {
                 const productsData = productsResponse.data.products || productsResponse.data || [];
-                
-                // Đảm bảo chỉ lấy sản phẩm của shop này
                 const filteredProducts = productsData.filter(product => {
-                    // Kiểm tra store_id có thể là chuỗi hoặc object với _id
                     const productStoreId = typeof product.store_id === 'object' 
                         ? product.store_id?._id 
                         : product.store_id;
-                    
                     return productStoreId === shopId;
                 });
-                
                 console.log(`Filtered from ${productsData.length} to ${filteredProducts.length} products`);
                 setProducts(filteredProducts);
             } else {
-                showToast.error('Không thể tải danh sách sản phẩm');
+                showToast.error(productsResponse.message || 'Không thể tải danh sách sản phẩm');
             }
         } catch (error) {
             console.error('Lỗi khi tải dữ liệu shop:', error);
-            showToast.error('Đã xảy ra lỗi khi tải dữ liệu cửa hàng');
+            showToast.error(error.message || 'Đã xảy ra lỗi khi tải dữ liệu cửa hàng');
         } finally {
             setLoading(false);
         }
     };
 
-    // Xử lý khi người dùng chọn danh mục
     const handleCategoryClick = async (categoryId) => {
         setActiveCategory(categoryId);
         if (isMenuOpen) {
@@ -88,26 +100,20 @@ export default function StorePage() {
 
         setLoading(true);
         try {
-            // Lấy sản phẩm theo danh mục được chọn
             const params = categoryId === 'all' ? {} : { category_id: categoryId };
             const productsResponse = await shopService.getShopProducts(shopId, params);
             if (productsResponse.isSuccess) {
                 const productsData = productsResponse.data.products || productsResponse.data || [];
-                
-                // Đảm bảo chỉ lấy sản phẩm của shop này
                 const filteredProducts = productsData.filter(product => {
-                    // Kiểm tra store_id có thể là chuỗi hoặc object với _id
                     const productStoreId = typeof product.store_id === 'object' 
                         ? product.store_id?._id 
                         : product.store_id;
-                    
                     return productStoreId === shopId;
                 });
-                
                 console.log(`Category ${categoryId}: Filtered from ${productsData.length} to ${filteredProducts.length} products`);
                 setProducts(filteredProducts);
             } else {
-                showToast.error('Không thể tải danh sách sản phẩm');
+                showToast.error(productsResponse.message || 'Không thể tải danh sách sản phẩm');
             }
         } catch (error) {
             console.error('Lỗi khi lọc sản phẩm theo danh mục:', error);
@@ -117,49 +123,36 @@ export default function StorePage() {
         }
     };
 
-    // Xử lý khi người dùng theo dõi hoặc bỏ theo dõi shop
     const handleFollowToggle = async () => {
+        if (!shopInfo.owner_id) {
+            showToast.error('Không thể thực hiện thao tác do thiếu ID chủ cửa hàng');
+            return;
+        }
+
+        const previousIsFollowing = isFollowing;
+        const previousFollowersCount = followersCount;
+        setIsFollowing(!isFollowing);
+        setFollowersCount(isFollowing ? followersCount - 1 : followersCount + 1);
+        showToast.success(isFollowing ? 'Bỏ theo dõi thành công' : 'Theo dõi thành công');
+
         try {
-            setLoading(true);
-            if (isFollowing) {
-                const response = await shopService.unfollowShop(shopId);
-                if (response.isSuccess) {
-                    setIsFollowing(false);
-                    // Cập nhật số lượng người theo dõi
-                    setShopInfo(prev => ({
-                        ...prev,
-                        followers: (prev.followers || 0) - 1
-                    }));
-                    showToast.success('Đã bỏ theo dõi cửa hàng');
-                } else {
-                    showToast.error('Không thể bỏ theo dõi cửa hàng');
-                }
+            const response = isFollowing
+                ? await shopService.unfollowShop(shopInfo.owner_id)
+                : await shopService.followShop(shopInfo.owner_id);
+
+            if (!response.isSuccess) {
+                setIsFollowing(previousIsFollowing);
+                setFollowersCount(previousFollowersCount);
+                showToast.error(response.message || 'Thao tác không thành công');
             } else {
-                const response = await shopService.followShop(shopId);
-                if (response.isSuccess) {
-                    setIsFollowing(true);
-                    // Cập nhật số lượng người theo dõi
-                    setShopInfo(prev => ({
-                        ...prev,
-                        followers: (prev.followers || 0) + 1
-                    }));
-                    showToast.success('Đã theo dõi cửa hàng');
-                } else {
-                    showToast.error('Không thể theo dõi cửa hàng');
-                }
+                setFollowersCount(response.data.followersCount);
             }
         } catch (error) {
-            console.error('Lỗi khi theo dõi/bỏ theo dõi shop:', error);
-            showToast.error('Đã xảy ra lỗi');
-        } finally {
-            setLoading(false);
+            setIsFollowing(previousIsFollowing);
+            setFollowersCount(previousFollowersCount);
+            console.error('Lỗi khi thực hiện follow/unfollow:', error.message);
+            showToast.error(error.message || 'Đã xảy ra lỗi khi thực hiện thao tác');
         }
-    };
-    
-    // Xử lý khi người dùng nhấn nút nhắn tin
-    const handleMessageShop = () => {
-        // Implement logic để mở chat với shop
-        showToast.info('Tính năng nhắn tin đang được phát triển');
     };
 
     const renderRatingStars = (rating) => {
@@ -183,7 +176,6 @@ export default function StorePage() {
         return Math.round(((original - discounted) / original) * 100);
     };
 
-    // Nếu chưa có dữ liệu shop thì hiển thị loading hoặc placeholder
     if (!shopInfo) {
         return (
             <div className="bg-gray-50 min-h-screen flex items-center justify-center">
@@ -194,7 +186,6 @@ export default function StorePage() {
 
     return (
         <div className="bg-gray-100 min-h-screen">
-            {/* Hero Section with Banner */}
             <div className="relative h-80 overflow-hidden">
                 <img 
                     src={shopInfo.banner || '/api/placeholder/1200/300'} 
@@ -203,7 +194,6 @@ export default function StorePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                 
-                {/* Shop Info Overlay */}
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                     <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div className="flex items-center">
@@ -220,14 +210,14 @@ export default function StorePage() {
                                     </div>
                                     <span className="ml-2 text-white text-sm">{shopInfo.average_rating || 0}</span>
                                     <span className="mx-2 text-white">•</span>
-                                    <span className="text-white text-sm">{shopInfo.followers?.toLocaleString() || 0} người theo dõi</span>
+                                    <span className="text-white text-sm">{followersCount} người theo dõi</span>
                                 </div>
                             </div>
                         </div>
                         
                         <div className="flex space-x-3 mt-4 md:mt-0">
                             <button 
-                                onClick={handleMessageShop}
+                                onClick={() => showToast.info('Tính năng nhắn tin đang được phát triển')}
                                 className="bg-white text-blue-600 font-medium py-2 px-4 rounded-full hover:bg-gray-100 transition flex items-center shadow-md"
                             >
                                 <MessageSquare size={18} className="mr-2" />
@@ -241,6 +231,7 @@ export default function StorePage() {
                                     ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100' 
                                     : 'bg-blue-600 text-white hover:bg-blue-700'
                                 }`}
+                                disabled={!shopInfo.owner_id}
                             >
                                 {isFollowing ? (
                                     <>
@@ -259,10 +250,8 @@ export default function StorePage() {
                 </div>
             </div>
 
-            {/* Main Content Container */}
             <div className="max-w-7xl mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {/* Shop Info Card */}
                     <div className="md:col-span-1">
                         <div className="bg-white rounded-xl shadow p-6 sticky top-24">
                             <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -271,17 +260,14 @@ export default function StorePage() {
                             </h3>
                             <div className="space-y-5">
                                 <p className="text-gray-700 border-b border-gray-100 pb-4">{shopInfo.description || 'Chưa có mô tả'}</p>
-                                
                                 <div className="flex items-start">
                                     <MapPin size={18} className="text-gray-400 mr-3 mt-1 flex-shrink-0" />
                                     <p className="text-gray-700">{shopInfo.address || 'Không có địa chỉ'}</p>
                                 </div>
-                                
                                 <div className="flex items-start">
                                     <Clock3 size={18} className="text-gray-400 mr-3 mt-1 flex-shrink-0" />
-                                    <p className="text-gray-700">{shopInfo.operating_hours || '8:00 - 21:00 (Thứ 2 - Chủ nhật)'}</p>
+                                    <p className="text-gray-700">{shopInfo.operating_hours || '8:00 - Chủ nhật)'}</p>
                                 </div>
-                                
                                 <div className="flex items-start">
                                     <Calendar size={18} className="text-gray-400 mr-3 mt-1 flex-shrink-0" />
                                     <p className="text-gray-700">Hoạt động từ {shopInfo.established_year || new Date().getFullYear()}</p>
@@ -290,9 +276,7 @@ export default function StorePage() {
                         </div>
                     </div>
 
-                    {/* Products Section */}
                     <div className="md:col-span-3">
-                        {/* Categories Nav */}
                         <div className="bg-white rounded-xl shadow p-4 mb-6 overflow-x-auto sticky top-0 z-10">
                             <div className="flex space-x-4 min-w-max">
                                 {categories.map(category => (
@@ -311,7 +295,6 @@ export default function StorePage() {
                             </div>
                         </div>
 
-                        {/* Products Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {products && products.length > 0 ? (
                                 products.map(product => (
@@ -323,7 +306,6 @@ export default function StorePage() {
                                                 className="w-full h-56 object-cover transition-transform group-hover:scale-105" 
                                             />
                                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent h-20"></div>
-                                            
                                             <div className="absolute top-3 right-3 flex flex-col gap-2">
                                                 <button className="h-9 w-9 flex items-center justify-center bg-white rounded-full shadow hover:bg-gray-100 transition">
                                                     <Heart size={18} className="text-gray-500 hover:text-red-500" />
@@ -332,7 +314,6 @@ export default function StorePage() {
                                                     <ShoppingCart size={18} className="text-gray-500 hover:text-blue-500" />
                                                 </button>
                                             </div>
-                                            
                                             {product.original_price && product.price < product.original_price && (
                                                 <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center">
                                                     <Percent size={12} className="mr-1" />
@@ -382,7 +363,6 @@ export default function StorePage() {
                             )}
                         </div>
 
-                        {/* Load More Button */}
                         {products && products.length > 9 && (
                             <div className="mt-10 flex justify-center">
                                 <button className="px-8 py-3 border border-blue-600 text-blue-600 rounded-full hover:bg-blue-50 transition font-medium flex items-center">

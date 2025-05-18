@@ -13,6 +13,7 @@ import {
     Badge
 } from 'antd';
 import { ShoppingOutlined, HistoryOutlined, EyeOutlined } from '@ant-design/icons';
+import orderService from '../../services/order.service';
 
 const { Title, Text } = Typography;
 
@@ -25,41 +26,31 @@ const OrderHistory = () => {
     const [totalOrders, setTotalOrders] = useState(0);
     const pageSize = 10;
 
-    // Giả lập dữ liệu cho mục đích minh họa
     useEffect(() => {
         const fetchOrders = async () => {
+            setLoading(true);
             try {
-                // Thay thế bằng API call thực tế
-                setTimeout(() => {
-                    const mockOrders = Array.from({ length: 35 }, (_, i) => ({
-                        id: `ORD-${1000 + i}`,
-                        date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-                        status: ['Đã giao', 'Đang giao', 'Đang xử lý', 'Đã hủy'][Math.floor(Math.random() * 4)],
-                        total: Math.floor(Math.random() * 5000000) + 100000,
-                        items: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, j) => ({
-                            id: `PROD-${j}`,
-                            name: ['Áo thun nam', 'Quần jeans nữ', 'Đầm dạ hội', 'Giày thể thao', 'Túi xách', 'Mũ lưỡi trai'][Math.floor(Math.random() * 6)],
-                            price: Math.floor(Math.random() * 1000000) + 50000,
-                            quantity: Math.floor(Math.random() * 3) + 1,
-                            image: '/api/placeholder/80/80'
-                        }))
-                    }));
-
-                    const startIndex = (currentPage - 1) * pageSize;
-                    const endIndex = startIndex + pageSize;
-
-                    setOrderData(mockOrders.slice(startIndex, endIndex));
-                    setTotalOrders(mockOrders.length);
-                    setLoading(false);
-                }, 1000);
+                const response = await orderService.get_customer_orders({
+                    page: currentPage,
+                    limit: pageSize,
+                });
+                // Lấy mảng orders từ response.data
+                const orders = Array.isArray(response.data?.orders) ? response.data.orders : [];
+                setOrderData(orders);
+                setTotalOrders(response.data?.total || orders.length);
+                setLoading(false);
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu đơn hàng:', error);
+                setOrderData([]); // Đặt lại thành mảng rỗng nếu lỗi
+                setTotalOrders(0);
                 setLoading(false);
             }
         };
 
         fetchOrders();
     }, [currentPage]);
+
+    // ... (Phần còn lại của code giữ nguyên: handleViewOrderDetails, handlePageChange, getStatusColor, formatCurrency, formatDate, columns, JSX)
 
     const handleViewOrderDetails = (order) => {
         setSelectedOrder(order);
@@ -98,9 +89,9 @@ const OrderHistory = () => {
     const columns = [
         {
             title: 'Mã đơn hàng',
-            dataIndex: 'id',
-            key: 'id',
-            render: (id) => <Text strong>{id}</Text>,
+            dataIndex: 'order_code',
+            key: 'order_code',
+            render: (order_code) => <Text strong>{order_code}</Text>,
         },
         {
             title: 'Ngày đặt hàng',
@@ -110,9 +101,9 @@ const OrderHistory = () => {
         },
         {
             title: 'Tổng tiền',
-            dataIndex: 'total',
-            key: 'total',
-            render: (total) => <Text type="success" strong>{formatCurrency(total)}</Text>,
+            dataIndex: 'total_amount',
+            key: 'total_amount',
+            render: (total_amount) => <Text type="success" strong>{formatCurrency(total_amount)}</Text>,
         },
         {
             title: 'Trạng thái',
@@ -164,7 +155,7 @@ const OrderHistory = () => {
                     <Table
                         columns={columns}
                         dataSource={orderData}
-                        rowKey="id"
+                        rowKey="order_code"
                         pagination={false}
                         style={{ overflowX: 'auto' }}
                         rowClassName={(record) => record.status === 'Đã hủy' ? 'order-cancelled' : ''}
@@ -190,7 +181,7 @@ const OrderHistory = () => {
                 title={
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <ShoppingOutlined style={{ fontSize: '20px', marginRight: '8px', color: '#1890ff' }} />
-                        <span>Chi tiết đơn hàng {selectedOrder?.id}</span>
+                        <span>Chi tiết đơn hàng {selectedOrder?.order_code}</span>
                     </div>
                 }
                 open={modalVisible}
@@ -222,9 +213,16 @@ const OrderHistory = () => {
                                         borderBottom: index < selectedOrder.items.length - 1 ? '1px solid #f0f0f0' : 'none',
                                         alignItems: 'center'
                                     }}>
-                                        <img src={item.image} alt={item.name} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                                        <img 
+                                            src={item.image || '/api/placeholder/80/80'} 
+                                            alt={item.product_name} 
+                                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} 
+                                        />
                                         <div style={{ marginLeft: '16px', flex: 1 }}>
-                                            <Text strong>{item.name}</Text>
+                                            <Text strong>{item.product_name}</Text>
+                                            <Text style={{ display: 'block', color: '#888' }}>
+                                                Cửa hàng: {item.shop?.name || 'Không xác định'}
+                                            </Text>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
                                                 <Text type="secondary">SL: {item.quantity}</Text>
                                                 <Text>{formatCurrency(item.price)}</Text>
@@ -239,7 +237,7 @@ const OrderHistory = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
                                 <Text strong>Tổng cộng:</Text>
                                 <Text type="success" style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                                    {formatCurrency(selectedOrder.total)}
+                                    {formatCurrency(selectedOrder.total_amount)}
                                 </Text>
                             </div>
                         </div>
@@ -248,13 +246,13 @@ const OrderHistory = () => {
             </Modal>
 
             <style jsx>{`
-        .order-cancelled {
-          opacity: 0.7;
-        }
-        .ant-table-row:hover {
-          background-color: #f5f5f5;
-        }
-      `}</style>
+                .order-cancelled {
+                    opacity: 0.7;
+                }
+                .ant-table-row:hover {
+                    background-color: #f5f5f5;
+                }
+            `}</style>
         </div>
     );
 };

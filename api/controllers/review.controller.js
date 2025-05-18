@@ -148,62 +148,112 @@ const deleteReview = asyncHandler(async (req, res) => {
 });
 
 const replyToReview = asyncHandler(async (req, res) => {
-    const reviewId = req.params.reviewId;
-    const { content } = req.body;
-    const sellerId = req.user._id;
+  const reviewId = req.params.reviewId;
+  const { content } = req.body;
+  const userId = req.user._id;
+  const userRole = req.user.role; // Assuming user object has a role field ('seller' or 'customer')
 
-    console.log('Received:', { reviewId, content, sellerId });
+  // Validate input
+  if (!content || typeof content !== "string") {
+    res.status(400);
+    throw new Error("Invalid Data Format: Content is required and must be a string");
+  }
 
-    if (!content || typeof content !== 'string') {
-        res.status(400);
-        throw new Error('Invalid Data Format: Content is required and must be a string');
-    }
+  // Find the review
+  const review = await Review.findById(reviewId);
+  if (!review) {
+    res.status(404);
+    throw new Error("Review not found");
+  }
 
-    const review = await Review.findById(reviewId);
-    if (!review) {
-        res.status(404);
-        throw new Error('Review not found');
-    }
-
+  // Authorization checks
+  if (userRole === "seller") {
+    // Verify if the seller is authorized to reply
     const product = await Product.findById(review.product_id);
-    console.log('Product:', product);
     if (!product) {
-        res.status(404);
-        throw new Error('Product not found for this review');
+      res.status(404);
+      throw new Error("Product not found for this review");
     }
 
     const store = await Store.findById(product.store_id);
-    console.log('Store:', store);
     if (!store) {
-        res.status(404);
-        throw new Error('Store not found for this product');
-    }
-    if (store.owner_id.toString() !== sellerId.toString()) {
-        res.status(403);
-        throw new Error('Unauthorized to reply to this review');
+      res.status(404);
+      throw new Error("Store not found for this product");
     }
 
-    review.reply = {
-        content,
-        replied_at: new Date(),
-    };
-
-    try {
-        await review.save();
-        console.log('Saved review:', review);
-    } catch (saveError) {
-        console.error('Save error:', saveError);
-        res.status(500);
-        throw new Error('Lỗi khi lưu phản hồi');
+    if (store.owner_id.toString() !== userId.toString()) {
+      res.status(403);
+      throw new Error("Unauthorized to reply to this review");
     }
-
-    try {
-        res.json(formatResponse(true, review.toObject(), 'Reply submitted successfully', {}));
-    } catch (jsonError) {
-        console.error('JSON response error:', jsonError);
-        res.status(500);
-        throw new Error('Lỗi khi gửi phản hồi');
+  } else if (userRole === "customer") {
+    // Verify if the customer is the one who created the review
+    if (review.customer_id.toString() !== userId.toString()) {
+      res.status(403);
+      throw new Error("Unauthorized to reply to this review");
     }
+  } else {
+    res.status(403);
+    throw new Error("Invalid user role");
+  }
+
+  // Create a new reply object
+  const newReply = {
+    content,
+    user_id: userId,
+    role: userRole,
+    replied_at: new Date(),
+    status: "active",
+  };
+
+  // Initialize replies array if it doesn't exist
+  if (!review.replies) {
+    review.replies = [];
+  }
+
+  // Add the new reply to the replies array
+  review.replies.push(newReply);
+
+  // Save the updated review
+  try {
+    await review.save();
+  } catch (saveError) {
+    console.error("Save error:", saveError);
+    res.status(500);
+    throw new Error("Error saving reply");
+  }
+
+  // Send response
+  try {
+    res.json(
+      formatResponse(true, review.toObject(), "Reply submitted successfully")
+    );
+  } catch (jsonError) {
+    console.error("JSON response error:", jsonError);
+    res.status(500);
+    throw new Error("Error sending response");
+  }
+});
+
+// Suggested Review Schema Update (for reference, not part of the controller)
+const reviewSchema = new mongoose.Schema({
+  review_type: { type: String, required: true },
+  product_id: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+  customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  content: { type: String, required: true },
+  images: { type: [String], default: [] },
+  title: { type: String, required: true },
+  status: { type: String, default: "active" },
+  replies: [
+    {
+      content: { type: String, required: true },
+      user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      role: { type: String, enum: ["seller", "customer"], required: true },
+      replied_at: { type: Date, default: Date.now },
+      status: { type: String, default: "active" },
+    },
+  ],
+  created_at: { type: Date, default: Date.now },
 });
 
 const getProductListWithReviewStats = asyncHandler(async (req, res) => {

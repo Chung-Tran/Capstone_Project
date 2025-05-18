@@ -149,77 +149,93 @@ const ReviewProductModal = ({ visible, product, onCancel }) => {
   };
 
   const handleReply = async () => {
+  try {
+    setLoading(true);
+    
+    // Check if reply content is empty
+    if (!replyForm.content.trim()) {
+      showToast.warning('Phản hồi không được để trống');
+      return;
+    }
+    
     try {
-      setLoading(true);
+      // Call API to reply to review
+      const response = await reviewService.reply_product_review(replyForm.reviewId, replyForm.content);
       
-      // Kiểm tra nội dung phản hồi có trống không
-      if (!replyForm.content.trim()) {
-        showToast.warning('Phản hồi không được để trống');
-        return;
-      }
+      // Update reviews state with the new reply
+      setReviews(
+        reviews.map((review) =>
+          review._id === replyForm.reviewId
+            ? {
+                ...review,
+                // Add the new reply to the replies array
+                replies: [
+                  ...(review.replies || []),
+                  {
+                    content: replyForm.content,
+                    replied_at: new Date(),
+                    seller_id: response?.data?.replies?.[response?.data?.replies?.length - 1]?.seller_id || null
+                  }
+                ],
+                // For backward compatibility
+                reply: {
+                  content: replyForm.content,
+                  replied_at: new Date()
+                }
+              }
+            : review
+        )
+      );
       
-      try {
-        // Gọi API phản hồi đánh giá
-        const response = await reviewService.reply_product_review(replyForm.reviewId, replyForm.content);
-        
-        // Cập nhật state reviews
+      // Reset form and close dialog
+      setReplyForm({ reviewId: null, content: '' });
+      
+      // Show success notification
+      showToast.success('Đã phản hồi đánh giá thành công');
+    } catch (apiError) {
+      console.error('Reply API error:', apiError);
+      
+      // Handle special case when error message contains "submitted successfully"
+      if (apiError.message && apiError.message.includes('submitted successfully')) {
+        // This is actually a success returned as an error
         setReviews(
           reviews.map((review) =>
             review._id === replyForm.reviewId
               ? {
                   ...review,
+                  replies: [
+                    ...(review.replies || []),
+                    {
+                      content: replyForm.content,
+                      replied_at: new Date()
+                    }
+                  ],
                   reply: {
                     content: replyForm.content,
-                    replied_at: response?.data?.reply?.replied_at || new Date(),
-                  },
+                    replied_at: new Date()
+                  }
                 }
               : review
           )
         );
         
-        // Reset form và đóng dialog
+        // Reset form
         setReplyForm({ reviewId: null, content: '' });
-        onCancel();
         
-        // Thông báo thành công
+        // Show success notification
         showToast.success('Đã phản hồi đánh giá thành công');
-      } catch (apiError) {
-        console.error('Reply API error:', apiError);
-        
-        // Xử lý trường hợp đặc biệt khi lỗi có message "Reply submitted successfully"
-        if (apiError.message && apiError.message.includes('submitted successfully')) {
-          // Đây thực ra là thành công nhưng được trả về dưới dạng lỗi
-          setReviews(
-            reviews.map((review) =>
-              review._id === replyForm.reviewId
-                ? {
-                    ...review,
-                    reply: {
-                      content: replyForm.content,
-                      replied_at: new Date(),
-                    },
-                  }
-                : review
-            )
-          );
-          
-          // Reset form và đóng dialog
-          setReplyForm({ reviewId: null, content: '' });
-          
-          // Thông báo thành công
-          showToast.success('Đã phản hồi đánh giá thành công');
-        } else {
-          // Đây là lỗi thực sự
-          showToast.error(apiError.message || 'Không thể phản hồi đánh giá');
-        }
+      } else {
+        // This is a real error
+        showToast.error(apiError.message || 'Không thể phản hồi đánh giá');
       }
-    } catch (error) {
-      console.error('HandleReply error:', error);
-      showToast.error(error.message || 'Không thể phản hồi đánh giá');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('HandleReply error:', error);
+    showToast.error(error.message || 'Không thể phản hồi đánh giá');
+  } finally {
+    setLoading(false);
+  }
+};
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
