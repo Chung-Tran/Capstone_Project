@@ -49,6 +49,14 @@ const productSchema = new mongoose.Schema({
         enum: ['active', 'inactive'],
         default: 'active'
     },
+    isTraceVerified: {
+        type: Boolean,
+        default: false,
+    },
+    traceHistories: [{
+        cid: String,
+        blockNumber: String
+    }],
     colors: {
         type: [String],
         required: true

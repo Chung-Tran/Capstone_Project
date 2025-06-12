@@ -3,6 +3,7 @@ const Order = require('../models/order.model');
 const Transaction = require('../models/transaction.model');
 const OrderItem = require('../models/orderItem.model');
 const CustomerItems = require('../models/customerItems.model');
+const Product = require('../models/product.model');
 const formatResponse = require('../middlewares/responseFormat');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -115,26 +116,47 @@ const callback = asyncHandler(async (req, res) => {
       resultCode <> 0: giao dịch thất bại.
      */
     const { resultCode, orderId, amount, message, transId, orderType } = req.body;
-    console.log('callback', req.body);
     if (resultCode == 0) {
-        //update order status
         const order = await Order.findById(new mongoose.Types.ObjectId(orderId));
-        console.log('order', order);
         if (!order) {
             return res.status(404).json(formatResponse(false, null, 'Order not found'));
         }
+
         const transaction = await Transaction.create({
             order_id: orderId,
             transaction_code: transId,
             amount: amount,
             payment_method: orderType,
-            // payment_gateway: orderType,
             status: resultCode == 0 ? 'success' : 'failed',
         });
         order.payment_status = 'success';
         order.payment_method = 'momo';
         order.payment_transaction_id = transaction._id;
+        //delete from cart
+        await CustomerItems.deleteMany({
+            customer_id: order.customer_id,
+            type: 'cart'
+        });
+        const products = await OrderItem.find({ orderId: order._id });
+        if (products && products.length > 0) {
+            await Promise.all(
+                products.map(item =>
+                    Product.findByIdAndUpdate(
+                        item.product_id,
+                        {
+                            $inc: {
+                                quantitySold: item.quantity || 1,
+                                stock: -(item.quantity || 1) // giảm tồn kho
+                            }
+                        },
+                        { new: true }
+                    )
+                )
+            );
+        }
+
         await order.save();
+
     } else {
         console.error('Transaction failed', message, 'resultCode', resultCode, 'OrderId', orderId);
         const transaction = await Transaction.create({
@@ -156,7 +178,6 @@ const callback = asyncHandler(async (req, res) => {
 
 const checkTransactionStatus = asyncHandler(async (req, res) => {
     const orderId = new mongoose.Types.ObjectId(req.params.orderId);
-    console.log('orderId', orderId);
     const order = await Order.findById(orderId);
     if (!order) {
         return res.status(200).json(formatResponse(true, {

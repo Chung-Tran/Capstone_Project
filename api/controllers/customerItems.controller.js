@@ -137,11 +137,11 @@ const updateCartQuantity = asyncHandler(async (req, res) => {
 // Xóa sản phẩm khỏi giỏ hàng
 const removeFromCart = asyncHandler(async (req, res) => {
     const customer_id = req.user._id;
-    const { product_id } = req.params;
+    const { item_id } = req.params;
 
     const result = await CustomerItems.findOneAndDelete({
         customer_id,
-        product_id,
+        _id: item_id,
         type: 'cart'
     });
 

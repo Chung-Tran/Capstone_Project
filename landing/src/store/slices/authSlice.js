@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { jwtDecode } from "jwt-decode";
 import authService from '../../services/auth.service';
-import { max } from 'lodash';
+import { isNumber, max } from 'lodash';
 import productService from '../../services/product.service';
 
 // Tạo async thunk để xử lý logic bất đồng bộ
@@ -39,7 +39,7 @@ const initialState = {
     loading: false,
     error: null,
     notifications: [],
-    wishlistCount: 0,
+    wishlistCount: [],
     cartCount: 0,
     categories: [],
 };
@@ -55,10 +55,12 @@ const authSlice = createSlice({
         loginSuccess: (state, action) => {
             const token = action.payload.token;
             const role = action.payload.role;
+            const _id = action.payload._id;
 
             try {
                 localStorage.setItem('token', token);
                 localStorage.setItem('role', role);
+                localStorage.setItem('customer_id', _id);
 
                 const decodedToken = jwtDecode(token);
 
@@ -86,14 +88,16 @@ const authSlice = createSlice({
         incrementCartCount: (state) => {
             state.cartCount += 1;
         },
-        decrementCartCount: (state) => {
-            state.cartCount = Math.max(0, (state.cartCount || 0) - 1);
+        decrementCartCount: (state, action) => {
+            state.cartCount = Math.max(0, (state.cartCount || 0) - (isNumber(action.payload) ? Number.parseInt(action.payload) : 1));
         },
-        incrementWishlistCount: (state) => {
-            state.wishlistCount += 1;
+        incrementWishlistCount: (state, action) => {
+            if (!state.wishlistCount.includes(action.payload))
+                state.wishlistCount.push(action.payload)
         },
-        decrementWishlistCount: (state) => {
-            state.wishlistCount = Math.max(0, (state.wishlistCount || 0) - 1);
+        decrementWishlistCount: (state, action) => {
+            // state.wishlistCount = Math.max(0, (state.wishlistCount || 0) - 1);
+            state.wishlistCount = state.wishlistCount.filter(item => item != action.payload)
         },
     },
     extraReducers: (builder) => {
@@ -107,7 +111,7 @@ const authSlice = createSlice({
                 state.userRole = action.payload.role;
                 state.user = action.payload.accountInfo.customer;
                 state.cartCount = action.payload.accountInfo.cartCount;
-                state.wishlistCount = action.payload.accountInfo.wishlistCount;
+                state.wishlistCount = action.payload.accountInfo.wishlistCount?.map(item => item.product_id);
                 state.loading = false;
             })
             .addCase(restoreSession.rejected, (state, action) => {

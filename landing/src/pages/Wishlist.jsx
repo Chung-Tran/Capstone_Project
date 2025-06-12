@@ -5,8 +5,10 @@ import { showToast } from '../utils/toast';
 import { useLoading } from '../utils/useLoading';
 import { useDispatch } from 'react-redux';
 import { decrementCartCount, decrementWishlistCount, incrementCartCount } from '../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 
 export default function Wishlist() {
+    const navigate = useNavigate()
     const dispatch = useDispatch();
     const { setLoading } = useLoading()
     const [wishlistItems, setWishlistItems] = useState([]);
@@ -35,7 +37,8 @@ export default function Wishlist() {
         try {
             await customerItemsService.removeItem(id);
             setWishlistItems(wishlistItems.filter(item => item._id !== id));
-            dispatch(decrementWishlistCount())
+            const productRemove = wishlistItems.find(item => item._id == id)
+            dispatch(decrementWishlistCount(productRemove.product_id._id))
         } catch (error) {
             showToast.success('Lỗi xóa sản phẩm');
             console.error('Error removing item:', error);
@@ -61,6 +64,8 @@ export default function Wishlist() {
     };
     const moveAllToCart = async () => {
         const availableItems = wishlistItems.filter(item => item.product_id.stock > 0);
+        if (availableItems.length <= 0)
+            showToast.error("Không thể thêm vào giỏ hàng");
         try {
             setLoading(true)
             await Promise.all(
@@ -94,15 +99,20 @@ export default function Wishlist() {
                     <div className="p-6 border-b border-gray-200">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                             <div className="flex items-center mb-4 sm:mb-0">
-                                <button className="flex items-center text-indigo-600 hover:text-indigo-800 transition">
+                                <button className="flex items-center text-indigo-600 hover:text-indigo-800 transition" onClick={() => navigate(`/`)}>
                                     <ChevronLeft size={16} className="mr-1" />
-                                    <span>Tiếp tục mua sắm</span>
+                                    <span >Tiếp tục mua sắm</span>
                                 </button>
                             </div>
                             <div className="flex space-x-4">
                                 <button
                                     onClick={moveAllToCart}
-                                    className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                                    disabled={wishlistItems.length === 0}
+                                    className={`flex items-center px-4 py-2 rounded-lg transition
+                                     ${wishlistItems.length === 0
+                                            ? 'bg-gray-400 text-white cursor-not-allowed'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'}
+  `}
                                 >
                                     <ShoppingCart size={16} className="mr-2" />
                                     <span>Thêm tất cả vào giỏ hàng</span>
@@ -116,7 +126,7 @@ export default function Wishlist() {
                             <Heart className="mx-auto text-gray-300 mb-4" size={64} />
                             <h3 className="text-xl font-medium text-gray-800 mb-2">Danh sách yêu thích trống</h3>
                             <p className="text-gray-500 mb-6 max-w-md mx-auto">Bạn chưa có sản phẩm nào trong danh sách yêu thích. Hãy thêm các sản phẩm yêu thích vào đây để mua sau.</p>
-                            <button className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition">
+                            <button className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition" onClick={() => navigate(`/`)} >
                                 Khám phá sản phẩm
                             </button>
                         </div>
@@ -143,15 +153,15 @@ export default function Wishlist() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {wishlistItems.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition">
+                                    {wishlistItems.map((item, index) => (
+                                        <tr key={index} className="hover:bg-gray-50 transition">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-24 w-20 bg-gray-100 rounded-md overflow-hidden">
                                                         <img src={item.product_id.main_image} alt={item.product_id.name} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 cursor-pointer">{item.product_id.name}</div>
+                                                        <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 cursor-pointer" onClick={() => navigate(`/san-pham/${item.product_id._id}`)}>{item.product_id.name}</div>
                                                         {item.product_id?.discount > 0 && (
                                                             <div className="flex items-center mt-1">
                                                                 <span className="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
@@ -204,6 +214,7 @@ export default function Wishlist() {
                                                     <button
                                                         className="p-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100"
                                                         title="Xem chi tiết"
+                                                        onClick={() => navigate(`/san-pham/${item.product_id._id}`)}
                                                     >
                                                         <Eye size={18} />
                                                     </button>

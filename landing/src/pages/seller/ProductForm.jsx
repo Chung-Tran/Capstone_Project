@@ -16,16 +16,20 @@ import {
   Descriptions,
   Badge,
   Checkbox,
+  Tooltip,
 } from "antd";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, SearchOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import styled from "styled-components";
 import productService from "../../services/product.service";
 import axiosClient from "../../config/axios";
 import { showToast } from "../../utils/toast";
 import { useLoading } from "../../utils/useLoading";
 import { useDispatch, useSelector } from "react-redux";
+import TraceProductAddModal from "../../components/product/TraceProductAddModal";
+import TraceProductDetailModal from "../../components/product/TraceProductDetailModal";
+import { COLOR_OPTIONS } from "../../common/Constant";
 
 const CKEditorWrapper = styled.div`
   .ck-editor__editable_inline {
@@ -46,6 +50,8 @@ const ProductForm = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [categories, setCategories] = useState([]);
+  const [showTraceDetailModal, setShowTraceDetailModal] = useState(false);
+  const [showTraceProductModal, setShowTraceProductModal] = useState(false);
   const [mainImageFile, setMainImageFile] = useState(null);
   const [additionalImageFiles, setAdditionalImageFiles] = useState([]);
   const { Option } = Select;
@@ -174,7 +180,7 @@ const ProductForm = ({
           tagsArray.forEach((tag, index) => {
             formData.append(`tags[${index}]`, tag);
           });
-        }else if (key === "colors" && Array.isArray(values[key])) {
+        } else if (key === "colors" && Array.isArray(values[key])) {
           values[key].forEach((catId, index) => {
             formData.append(`colors[${index}]`, catId);
           });
@@ -347,7 +353,7 @@ const ProductForm = ({
   // For view mode - render detailed product information
   if (isReadOnly && initialData) {
     return (
-      <Modal
+      <><Modal
         title={<span className="text-xl font-bold">Chi tiết sản phẩm</span>}
         open={isOpen}
         onCancel={onClose}
@@ -372,21 +378,37 @@ const ProductForm = ({
                   : "-"}
               </Descriptions.Item>
               <Descriptions.Item label="Tổng số lượng tồn">
-                {initialData.total_stock_quantity || 0}
+                {initialData.stock || 0}
               </Descriptions.Item>
+
               <Descriptions.Item label="Màu sắc">
-                {initialData.color
-                  ? {
-                      red: "Đỏ",
-                      yellow: "Vàng",
-                      orange: "Cam",
-                      green: "Xanh lá",
-                      blue: "Xanh dương",
-                      black: "Đen",
-                      white: "Trắng",
-                    }[initialData.color] || initialData.color
-                  : "-"}
+                {Array.isArray(initialData.colors) && initialData.colors.length > 0 ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {initialData.colors.map((colorValue) => {
+                      const colorObj = COLOR_OPTIONS.find((c) => c.value === colorValue);
+                      return (
+                        <span key={colorValue} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              border: "1px solid #ccc",
+                              backgroundColor: colorValue,
+                              marginRight: 4,
+                            }}
+                          />
+                          <span>{colorObj ? colorObj.label : colorValue}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  "-"
+                )}
               </Descriptions.Item>
+
               <Descriptions.Item label="Trạng thái">
                 <Badge
                   status={
@@ -400,8 +422,8 @@ const ProductForm = ({
               <Descriptions.Item label="Danh mục">
                 {initialData.category_id && initialData.category_id.length > 0
                   ? initialData.category_id
-                      .map((cat) => cat.name || "Không xác định")
-                      .join(", ")
+                    .map((cat) => cat.name || "Không xác định")
+                    .join(", ")
                   : "-"}
               </Descriptions.Item>
               <Descriptions.Item label="Tags">
@@ -414,11 +436,30 @@ const ProductForm = ({
               </Descriptions.Item>
               <Descriptions.Item label="Kích thước">
                 {initialData.dimensions &&
-                initialData.dimensions.length &&
-                initialData.dimensions.width &&
-                initialData.dimensions.height
+                  initialData.dimensions.length &&
+                  initialData.dimensions.width &&
+                  initialData.dimensions.height
                   ? `${initialData.dimensions.length} x ${initialData.dimensions.width} x ${initialData.dimensions.height} cm`
                   : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Xác thực nguồn gốc xuất xứ">
+                {initialData.isTraceVerified ? (
+                  <Tooltip title="Xem thông tin xác thực đã lưu trên blockchain">
+                    <Button type="primary" onClick={() => setShowTraceDetailModal(true)}>
+                      ✅ Đã xác thực - Xem chi tiết
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Bắt đầu xác thực sản phẩm trên blockchain">
+                    <Button
+                      type="default"
+                      icon={<SearchOutlined />}
+                      onClick={() => setShowTraceProductModal(true)}
+                    >
+                      Xác thực ngay
+                    </Button>
+                  </Tooltip>
+                )}
               </Descriptions.Item>
             </Descriptions>
           </TabPane>
@@ -440,7 +481,7 @@ const ProductForm = ({
               <div>
                 <h4 className="font-medium mb-2">Ảnh phụ</h4>
                 {initialData.additional_images &&
-                initialData.additional_images.length > 0 ? (
+                  initialData.additional_images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {initialData.additional_images.map((img, index) => (
                       <Image
@@ -457,6 +498,7 @@ const ProductForm = ({
               </div>
             </div>
             <div>
+              <span className="mt-4 text-base font-bold"> Mô tả sản phẩm</span>
               <div
                 className="prose max-w-full"
                 dangerouslySetInnerHTML={{
@@ -468,6 +510,7 @@ const ProductForm = ({
 
           <TabPane tab="Thông số sản phẩm" key="3">
             <div>
+              <span className="mt-2 text-base font-bold">Thông số sản phẩm</span>
               <div
                 className="prose max-w-full"
                 dangerouslySetInnerHTML={{
@@ -478,10 +521,23 @@ const ProductForm = ({
           </TabPane>
         </Tabs>
       </Modal>
+        <TraceProductAddModal
+          open={showTraceProductModal}
+          onClose={() => setShowTraceProductModal(false)}
+          productData={initialData}
+        />
+        <TraceProductDetailModal
+          open={showTraceDetailModal}
+          onClose={() => setShowTraceDetailModal(false)}
+          productData={initialData}
+        />
+      </>
+
     );
   }
 
   return (
+
     <Modal
       title={
         <span className="text-xl font-bold">
@@ -627,16 +683,20 @@ const ProductForm = ({
               </Col>
               <Col span={12}>
                 <Form.Item name="colors" label="Màu">
-                  <Select 
-                  mode="multiple"
-                  placeholder="Chọn màu sắc">
-                    <Option value="red">Màu đỏ</Option>
-                    <Option value="yellow">Màu vàng</Option>
-                    <Option value="orange">Màu cam</Option>
-                    <Option value="green">Màu xanh lục</Option>
-                    <Option value="blue">Màu xanh lam</Option>
-                    <Option value="black">Màu đen</Option>
-                    <Option value="white">Màu trắng</Option>
+                  <Select
+                    mode="multiple"
+                    placeholder="Chọn màu sắc">
+                    {COLOR_OPTIONS.map((color) => (
+                      <Option key={color.value} value={color.value}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: color.value }}
+                          />
+                          {color.label}
+                        </span>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>

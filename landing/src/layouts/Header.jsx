@@ -76,6 +76,7 @@ const Header = () => {
     };
     const handleLogout = () => {
         dispatch(logout());
+        navigate('/')
     };
     const handleUserIconClick = () => {
         if (!isAuthenticated) {
@@ -153,7 +154,7 @@ const Header = () => {
                                     className="w-[300px] px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-gray-50"
                                     onKeyDown={handleSearch}
                                 />
-                                <button className="absolute right-0 top-0 h-full px-2 text-gray-500 hover:text-blue-600">
+                                <button className="absolute right-0 top-0 h-full px-2 text-gray-500 hover:text-blue-600" onClick={handleSearch}>
                                     <Search size={16} />
                                 </button>
                             </div>
@@ -202,9 +203,9 @@ const Header = () => {
                                 isAuthenticated && (
                                     <Link to="/san-pham-yeu-thich" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
                                         <Heart size={20} />
-                                        {wishlistCount >= 0 && (
+                                        {wishlistCount.length >= 0 && (
                                             <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                                                {wishlistCount}
+                                                {wishlistCount.length}
                                             </span>
                                         )}
                                     </Link>
@@ -265,107 +266,6 @@ const Header = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* Mobile Menu */}
-                {isMobileMenuOpen && (
-                    <div className="lg:hidden fixed inset-0 bg-white z-40 pt-20">
-                        <div className="px-4">
-                            {/* Mobile Search */}
-                            <div className="mb-6">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm..."
-                                        className="w-full px-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-gray-50"
-                                        onKeyDown={handleSearch}
-                                    />
-                                    <button className="absolute right-0 top-0 h-full px-4 text-gray-500 hover:text-blue-600">
-                                        <Search size={18} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Mobile Navigation */}
-                            <nav className="space-y-4">
-                                <div>
-                                    <button
-                                        className="w-full flex justify-between items-center text-left text-gray-700 hover:text-blue-600 font-medium text-base"
-                                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                                    >
-                                        <span>Danh mục</span>
-                                        <ChevronDown size={16} />
-                                    </button>
-                                    {isCategoryOpen && (
-                                        <div className="mt-2 space-y-2 pl-4">
-                                            {categories.map((category, index) => (
-                                                <Link
-                                                    key={index}
-                                                    to={category.path}
-                                                    className="block text-base text-gray-700 hover:text-blue-600"
-                                                    onClick={() => {
-                                                        setIsCategoryOpen(false);
-                                                        setIsMobileMenuOpen(false);
-                                                    }}
-                                                >
-                                                    {category.name}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <Link
-                                    to="/danh-cho-ban"
-                                    className="block text-base text-gray-700 hover:text-blue-600"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Dành cho bạn
-                                </Link>
-                                <Link
-                                    to="/san-pham-moi"
-                                    className="block text-base text-gray-700 hover:text-blue-600"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Sản phẩm mới
-                                </Link>
-                            </nav>
-
-                            {/* Mobile User Section */}
-                            <div className="mt-6 border-t pt-4">
-                                {isAuthenticated ? (
-                                    <>
-                                        <div className="mb-4">
-                                            <p className="font-medium">Xin chào!</p>
-                                            <p className="text-sm text-gray-500">user@example.com</p>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <Link
-                                                to="/account"
-                                                className="block text-base text-gray-700 hover:text-blue-600"
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                            >
-                                                Tài khoản của tôi
-                                            </Link>
-                                            <Link
-                                                to="/orders"
-                                                className="block text-base text-gray-700 hover:text-blue-600"
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                            >
-                                                Đơn hàng của tôi
-                                            </Link>
-                                            <button
-                                                className="block w-full text-left text-base text-gray-700 hover:text-blue-600"
-                                                onClick={() => {/* Xử lý đăng xuất */ }}
-                                            >
-                                                Đăng xuất
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : null}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </header>
     );

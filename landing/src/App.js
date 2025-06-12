@@ -14,7 +14,6 @@ import ProductsManager from './pages/seller/ProductsManager';
 import Orders from './pages/seller/Orders';
 import Reviews from './pages/seller/Reviews';
 import Messages from './pages/seller/Messages';
-import Analytics from './pages/seller/Analytics';
 import HomePage from './pages/HomePage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -33,6 +32,7 @@ import ShoppingCart from './pages/CartPage';
 import Wishlist from './pages/Wishlist';
 import StorePage from './pages/StorePage';
 import CategoryPage from './pages/CategoryPage';
+import { SocketProvider } from './contexts/SocketContext';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -80,6 +80,7 @@ const ProtectedRoute = ({ children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
+
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -94,7 +95,9 @@ const AppRoutes = () => {
             <Route path="orders" element={<Orders />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="messages" element={<Messages />} />
-            <Route path="analytics" element={<Analytics />} />
+
+
+            {/* <Route path="analytics" element={<Analytics />} /> */}
           </Routes>
         </SellerRoute>
       } />
@@ -141,13 +144,17 @@ const AppRoutes = () => {
 };
 
 function App() {
+  const token = localStorage.getItem("token")
   return (
     <Provider store={store}>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-          <ToastContainer />
-        </Router>
+        <SocketProvider token={token}>
+          <Router>
+            <AppRoutes />
+            <ToastContainer />
+          </Router>
+        </SocketProvider>
+
       </AuthProvider>
     </Provider>
   );

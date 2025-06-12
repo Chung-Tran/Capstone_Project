@@ -106,6 +106,20 @@ const productService = {
             throw new Error(errorInfo.message);
         }
     },
+    product_relate: async (relateData, limit, skip) => {
+        try {
+            const payload = {
+                limit: limit,
+                skip: skip,
+                ...relateData
+            }
+            const response = await axiosClient.post(`/products/relate`, payload);
+            return handleResponse(response);
+        } catch (error) {
+            const errorInfo = handleError(error);
+            throw new Error(errorInfo.message);
+        }
+    },
 };
 
 export default productService;

@@ -315,7 +315,7 @@ const getAccountInfo = asyncHandler(async (req, res) => {
     const [customer, notifications, wishlistCount, cartQuantityAgg] = await Promise.all([
         Customer.findById(user._id).select('-password'),
         Notification.find({ user_id: user._id }),
-        CustomerItems.countDocuments({ customer_id: user._id, type: 'wishlist' }),
+        CustomerItems.find({ customer_id: user._id, type: 'wishlist' }).select('product_id'),
         CustomerItems.aggregate([
             { $match: { customer_id: user._id, type: 'cart' } },
             { $group: { _id: null, total: { $sum: "$quantity" } } }
@@ -355,7 +355,7 @@ const updatePassword = asyncHandler(async (req, res) => {
         return res.status(400).json(formatResponse(false, {}, 'Mật khẩu mới phải có ít nhất 6 ký tự!'));
     }
 
-    customer.password = await bcrypt.hash(newPassword, 10);
+    customer.password = newPassword;
     await customer.save();
 
     res.json(formatResponse(true, {}, 'Đổi mật khẩu thành công!'));

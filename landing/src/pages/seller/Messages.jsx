@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
+import useChat from '../../hooks/useChat';
+
 const Messages = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [chats] = useState([
@@ -20,6 +22,20 @@ const Messages = () => {
         },
         // Thêm các cuộc trò chuyện mẫu khác
     ]);
+    const [inputValue, setInputValue] = useState('');
+    const {
+        messages,
+        users,
+        isConnected,
+        sendMessage,
+    } = useChat('123');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        sendMessage('check');
+
+
+    };
 
     return (
         <div className="h-[calc(100vh-theme(spacing.16))]">
@@ -76,7 +92,7 @@ const Messages = () => {
                                         className="flex-1 border rounded-lg px-4 py-2"
                                     />
                                     <button className="p-2 bg-blue-500 text-white rounded-lg">
-                                        <PaperAirplaneIcon className="w-5 h-5" />
+                                        <PaperAirplaneIcon className="w-5 h-5" onClick={handleSubmit} />
                                     </button>
                                 </div>
                             </div>

@@ -10,7 +10,7 @@ router.get('/wishlist', authMiddleware, CustomerItemsController.getWishlist);
 
 // Cart routes
 router.put('/cart/:product_id', authMiddleware, CustomerItemsController.updateCartQuantity);
-router.delete('/cart/:product_id', authMiddleware, CustomerItemsController.removeFromCart);
+router.delete('/cart/:item_id', authMiddleware, CustomerItemsController.removeFromCart);
 router.get('/cart', authMiddleware, CustomerItemsController.getCart);
 router.delete('/cart', authMiddleware, CustomerItemsController.clearCart);
 

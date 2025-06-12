@@ -26,38 +26,56 @@ import { useLoading } from "../utils/useLoading";
 import { Rating } from "react-simple-star-rating";
 import reviewService from "../services/review.service";
 import ReviewModal from "../components/ReviewModal";
+import create_logger from "../config/logger";
+import { incrementCartCount } from "../store/slices/authSlice";
+import customerItemsService from "../services/customerItems.service";
+import { useDispatch } from "react-redux";
+import BlockchainAuthModal from "../components/product/BlockchainAuthModal";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 
 const ProductDetailPage = () => {
   const { setLoading } = useLoading();
+  const dispatch = useDispatch()
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [expandedReviewImage, setExpandedReviewImage] = useState(null);
   const [product, setProduct] = useState({});
+  const [productsRelate, setProductsRelate] = useState([]);
   const [reviewList, setReviewList] = useState({});
   const [isModalReviewOpen, setIsModalReviewOpen] = useState(false);
   const [store, setStore] = useState({});
   const { id } = useParams();
-
+  const requireAuth = useRequireAuth();
   useEffect(() => {
     if (!id) return;
 
     const fetchData = async () => {
       setLoading(true);
-      console.log(`Fetching product and reviews for product id: ${id}`);
       await Promise.all([
         fetchProductById(id),
         fetchProductReviews(id, { limit: 5, skip: 0 }),
       ]);
+      create_logger({
+        customer_id: localStorage.getItem('customer_id'),
+        action_type: 'view',
+        product_id: id,
+        keywords: product?.keywords,
+      })
       setLoading(false);
     };
 
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    if (product && product.category_id?.length > 0) {
+      fetchProductRelate();
+    }
+  }, [product]);
+
   const fetchProductById = async (id) => {
     try {
-      console.log(`Fetching product data for id: ${id}`);
       const response = await productService.getProductById(id);
       if (response.isSuccess) {
         setProduct(response.data);
@@ -70,6 +88,24 @@ const ProductDetailPage = () => {
       showToast.error("Đã có lỗi xảy ra khi lấy sản phẩm");
     }
   };
+
+  const fetchProductRelate = async () => {
+
+    try {
+      const relateData = {};
+      if (product?.category_id?.length > 0) {
+        relateData.categories = product?.category_id?.filter(Boolean).map(item => item._id)
+      }
+      const response = await productService.product_relate(relateData, 10, 0);
+      if (response.isSuccess) {
+        setProductsRelate(response.data);
+      } else {
+      }
+    } catch (error) {
+      showToast.error("Đã có lỗi xảy ra khi lấy sản phẩm liên quan");
+    }
+  };
+
 
   const fetchProductReviews = async (id, { limit = 5, skip = 0 } = {}) => {
     try {
@@ -88,21 +124,6 @@ const ProductDetailPage = () => {
       showToast.error("Đã có lỗi xảy ra khi lấy đánh giá");
     }
   };
-
-  const relatedProducts = Array(8)
-    .fill()
-    .map((_, i) => ({
-      id: `related-${i + 1}`,
-      name: `Samsung Galaxy A${54 + i}`,
-      price: 5990000 + i * 1000000,
-      originalPrice: 6990000 + i * 1000000,
-      discount: 15,
-      rating: 4.2 + Math.random() * 0.7,
-      reviewCount: 50 + Math.floor(Math.random() * 100),
-      image: "/api/placeholder/400/400",
-      images: ["/api/placeholder/400/400", "/api/placeholder/400/400"],
-      soldCount: 100 + Math.floor(Math.random() * 900),
-    }));
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
@@ -153,7 +174,27 @@ const ProductDetailPage = () => {
       originalClass: "w-full h-full object-contain",
       thumbnailClass: "object-cover",
     })) || [];
+  const moveItemToCart = async () => {
+    requireAuth(async () => {
+      try {
+        await customerItemsService.addToCart({
+          product_id: product._id,
+          quantity: 1,
+          type: 'cart'
+        });
 
+        dispatch(incrementCartCount())
+        showToast.success('Thêm vào giỏ hàng thành công');
+
+      } catch (error) {
+        showToast.error('Lỗi thêm sản phẩm vào giỏ hàng: ', error.message);
+
+        console.error('Error moving item to cart:', error);
+      }
+    })
+
+
+  }
   return product ? (
     <div className="container mx-auto py-6">
       <div className="flex items-center text-sm text-gray-500 mb-6">
@@ -171,6 +212,7 @@ const ProductDetailPage = () => {
       </div>
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
           <div className="w-full mx-auto">
             <div className="relative mb-4 rounded-lg overflow-hidden h-fit">
               <div className="product-gallery-container aspect-square">
@@ -205,10 +247,12 @@ const ProductDetailPage = () => {
               </button>
             </div>
           </div>
+
           <div className="flex flex-col">
             <h1 className="text-2xl font-bold text-gray-800 mb-3">
               {product.name}
             </h1>
+
             <div className="flex items-center gap-4 mb-3">
               <div className="flex items-center">
                 <span className="font-bold text-lg text-red-600 mr-2 flex items-center top-[3px] relative">
@@ -231,7 +275,7 @@ const ProductDetailPage = () => {
                 <span>{product.quantitySold} đã bán</span>
               </div>
             </div>
-            <div className="flex items-baseline gap-3 mb-6">
+            <div className="flex items-baseline gap-3 mb-4">
               <div className="text-3xl font-bold text-red-600">
                 {formatCurrency(product.price)}
               </div>
@@ -241,6 +285,10 @@ const ProductDetailPage = () => {
                 </div>
               )}
             </div>
+            {
+              product.isTraceVerified &&
+              <BlockchainAuthModal />
+            }
             <div className="mb-6">
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Màu sắc:
@@ -250,11 +298,10 @@ const ProductDetailPage = () => {
                   {product.colors?.map((color, index) => (
                     <div
                       key={index}
-                      className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${
-                        index === 0
-                          ? "border-blue-600 bg-blue-50 text-blue-600"
-                          : "border-gray-300 hover:border-blue-300"
-                      }`}
+                      className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
+                        ? "border-blue-600 bg-blue-50 text-blue-600"
+                        : "border-gray-300 hover:border-blue-300"
+                        }`}
                     >
                       {color}
                     </div>
@@ -292,13 +339,15 @@ const ProductDetailPage = () => {
               </div>
             </div>
             <div className="flex gap-4 mt-2">
-              <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors">
+              <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
+                onClick={() => moveItemToCart()}
+              >
                 <ShoppingCart size={20} />
                 <span>Thêm vào giỏ</span>
               </button>
-              <button className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg shadow-sm transition-colors">
+              {/* <button className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg shadow-sm transition-colors">
                 Mua ngay
-              </button>
+              </button> */}
             </div>
             <div className="grid grid-cols-3 gap-4 mt-6 border-t border-gray-200 pt-6">
               <div className="flex flex-col items-center text-center">
@@ -351,12 +400,6 @@ const ProductDetailPage = () => {
                     {store.average_rating || 0}
                   </span>
                 </div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">
-                    {store?.followers?.toLocaleString() || 0}
-                  </span>{" "}
-                  người theo dõi
-                </div>
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
@@ -380,9 +423,7 @@ const ProductDetailPage = () => {
               >
                 Xem shop
               </button>
-              <button className="border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-2 px-4 rounded-lg transition-colors">
-                Theo dõi
-              </button>
+
             </div>
           </div>
         </div>
@@ -391,21 +432,19 @@ const ProductDetailPage = () => {
         <div className="border-b border-gray-200">
           <div className="flex">
             <button
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === "description"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
+              className={`px-6 py-3 text-sm font-medium ${activeTab === "description"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-800"
+                }`}
               onClick={() => setActiveTab("description")}
             >
               Mô tả sản phẩm
             </button>
             <button
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === "specifications"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
+              className={`px-6 py-3 text-sm font-medium ${activeTab === "specifications"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-800"
+                }`}
               onClick={() => setActiveTab("specifications")}
             >
               Thông số kỹ thuật
@@ -652,7 +691,7 @@ const ProductDetailPage = () => {
         icon={<ThumbsUp size={18} />}
         viewAll="/related-products"
       >
-        {relatedProducts.map((product) => (
+        {productsRelate.map((product) => (
           <div key={product.id} className="flex-shrink-0 w-64">
             <ProductCardItem product={product} />
           </div>

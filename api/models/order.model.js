@@ -40,9 +40,10 @@ const orderSchema = new mongoose.Schema({
     carrier: String,
     status: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'rejected','done'],
         default: 'pending'
     },
+    reject_reason: String,
     billing_address: {
         street: String,
         city: String,

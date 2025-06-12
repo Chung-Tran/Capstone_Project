@@ -2,29 +2,39 @@ import React, { useState } from 'react';
 import { Heart, ShoppingCart, Star, Award, Truck, Eye, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../common/methodsCommon';
 import { Rating } from 'react-simple-star-rating';
+import customerItemsService from '../../services/customerItems.service';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../utils/toast';
+import { incrementCartCount, incrementWishlistCount } from '../../store/slices/authSlice';
+import { useRequireAuth } from '../../hooks/useRequireAuth';
 const ProductCardItem = ({ product }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const dispatch = useDispatch();
+    const requireAuth = useRequireAuth()
 
-    // Sử dụng product demo nếu không có dữ liệu được truyền vào
-    const demoProduct = {
-        id: 1,
-        name: "Áo Thun Nam Cao Cấp Cotton",
-        price: 399000,
-        originalPrice: 599000,
-        discount: 33,
-        rating: 4.8,
-        reviewCount: 124,
-        image: "/api/placeholder/400/500",
-        images: ["/api/placeholder/400/500", "/api/placeholder/400/500"],
-        badge: "Hot",
-        isFreeShipping: true,
-        isNew: true,
-        stockStatus: "Còn hàng",
-        soldCount: 89
+    const item = product
+
+    const handleAddItem = async (product, itemType) => {
+        requireAuth(async () => {
+            try {
+                await customerItemsService.addItem({
+                    product_id: product._id,
+                    type: itemType,
+                    quantity: itemType === 'cart' ? 1 : undefined
+                });
+                if (itemType === 'cart') {
+                    dispatch(incrementCartCount());
+                } else {
+                    dispatch(incrementWishlistCount(product._id));
+                }
+                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+            } catch (error) {
+                console.log(error);
+                showToast.error(error.message || 'Đã xảy ra lỗi');
+            }
+        })
+
     };
-
-    const item = product || demoProduct;
-
     return (
         <div
             className="bg-white rounded-lg shadow-md transition-all duration-300 hover:shadow-xl relative w-64 overflow-hidden"
@@ -51,7 +61,9 @@ const ProductCardItem = ({ product }) => {
             </div>
 
             {/* Wishlist button */}
-            <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-200 transition-colors">
+            <button className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-200 transition-colors"
+                onClick={() => handleAddItem(item, 'wishlist')}
+            >
                 <Heart size={18} className="text-gray-500 hover:text-red-500" />
             </button>
 
@@ -100,10 +112,10 @@ const ProductCardItem = ({ product }) => {
 
                 {/* Status indicators */}
                 <div className="flex flex-col gap-1 mb-3 text-xs">
-                    {item.soldCount > 0 && (
+                    {item.quantitySold > 0 && (
                         <div className="flex items-center text-gray-600">
                             <Award size={14} className="mr-1 text-purple-500" />
-                            <span>Đã bán {item.soldCount}</span>
+                            <span>Đã bán {item.quantitySold}</span>
                         </div>
                     )}
                     {item.isFreeShipping && (
@@ -118,9 +130,11 @@ const ProductCardItem = ({ product }) => {
                     </div>
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex gap-2">
-                    <button className="flex-1 text-black py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center text-black rounded-lg border border-gray-300 hover:bg-gray-100">
+                    <button
+                        className="flex-1 text-black py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center text-black rounded-lg border border-gray-300 hover:bg-gray-100"
+                        onClick={() => handleAddItem(item, 'cart')}
+                    >
                         <ShoppingCart size={16} className="mr-1" />
                         Thêm vào giỏ
                     </button>

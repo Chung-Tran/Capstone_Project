@@ -12,6 +12,7 @@ const multiUpload = upload.fields([
     { name: 'new_additional_images', maxCount: 10 } // dùng cho edit mode
 ]);
 
+router.post('/relate', ProductController.getProductRelate); //Sản phẩm liên quan
 router.post('/', authMiddleware, multiUpload, ProductController.createProduct);
 
 
@@ -20,6 +21,8 @@ router.get('/featured', ProductController.getProductFeatured); //Sản phẩm n�
 router.get('/flash-sale', ProductController.getProductByStoreId);//Sản phẩm flash sale
 router.get('/new', ProductController.getProductNew); //Sản phẩm mới
 router.get('/:id', ProductController.getProductById);
+router.get('/store/:id', ProductController.getStoreById);
+
 router.get('/', ProductController.getProducts);
 
 
@@ -27,6 +30,5 @@ router.put('/:id', authMiddleware, multiUpload, ProductController.updateProduct)
 
 
 router.delete('/:id', authMiddleware, ProductController.deleteProduct);
-router.get('/store/:id', ProductController.getStoreById);
 
 module.exports = router;

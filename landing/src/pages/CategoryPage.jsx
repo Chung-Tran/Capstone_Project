@@ -238,7 +238,7 @@ const CategoryPage = () => {
                     )}
 
                     {/* Recently Viewed */}
-                    {recentlyViewed.length > 0 && (
+                    {/* {recentlyViewed.length > 0 && (
                         <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
                             <div className="p-4 border-b border-gray-200 bg-gray-50">
                                 <h3 className="font-semibold text-gray-800">Đã xem gần đây</h3>
@@ -270,7 +270,7 @@ const CategoryPage = () => {
                                 ))}
                             </div>
                         </div>
-                    )}
+                    )} */}
                 </div>
 
                 {/* Main content area */}

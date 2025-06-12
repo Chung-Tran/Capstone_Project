@@ -12,58 +12,35 @@ import HeroSection from '../components/HeroSection';
 import customerItemsService from '../services/customerItems.service';
 import { useDispatch, useSelector } from 'react-redux';
 import { incrementCartCount, incrementWishlistCount } from '../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
+import { useRequireAuth } from '../hooks/useRequireAuth';
+import { homeTypeStyles } from '../common/Constant';
 
 const ProductCard = ({ product, type = "default" }) => {
     const discount = product.discount || Math.floor(Math.random() * 30);
-    const discountedPrice = product.price * (1 - discount / 100);
-    const ratings = product.rating || (Math.random() * 2 + 3).toFixed(1);
-    const sold = Math.floor(Math.random() * 500) + 50;
     const dispatch = useDispatch()
-    const typeStyles = {
-        featured: {
-            badge: "bg-blue-600",
-            badgeText: "Nổi bật",
-            priceColor: "text-blue-700",
-            hoverBorder: "group-hover:border-blue-400"
-        },
-        new: {
-            badge: "bg-green-600",
-            badgeText: "Mới",
-            priceColor: "text-green-700",
-            hoverBorder: "group-hover:border-green-400"
-        },
-        recommended: {
-            badge: "bg-purple-600",
-            badgeText: "Gợi ý",
-            priceColor: "text-purple-700",
-            hoverBorder: "group-hover:border-purple-400"
-        },
-        default: {
-            badge: "bg-gray-600",
-            badgeText: "Khuyến mãi",
-            priceColor: "text-gray-800",
-            hoverBorder: "group-hover:border-gray-400"
-        }
-    };
-    const style = typeStyles[type] || typeStyles.default;
+    const style = homeTypeStyles[type] || homeTypeStyles.default;
+    const requireAuth = useRequireAuth();
 
     const handleAddItem = async (itemType) => {
-        try {
-            await customerItemsService.addItem({
-                product_id: product._id,
-                type: itemType,
-                quantity: itemType === 'cart' ? 1 : undefined
-            });
-            if (itemType == 'cart') {
-                dispatch(incrementCartCount());
-            } else {
-                dispatch(incrementWishlistCount());
+        requireAuth(async () => {
+            try {
+                await customerItemsService.addItem({
+                    product_id: product._id,
+                    type: itemType,
+                    quantity: itemType === 'cart' ? 1 : undefined
+                });
+                if (itemType == 'cart') {
+                    dispatch(incrementCartCount());
+                } else {
+                    dispatch(incrementWishlistCount(product._id));
+                }
+                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+            } catch (error) {
+                console.log(error)
+                showToast.error(error.message || 'Đã xảy ra lỗi');
             }
-            showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
-        } catch (error) {
-            console.log(error)
-            showToast.error(error.message || 'Đã xảy ra lỗi');
-        }
+        })
     };
     return (
         <div className={`group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 ${style.hoverBorder}`}>
@@ -103,9 +80,10 @@ const ProductCard = ({ product, type = "default" }) => {
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
                         <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm text-gray-600 ml-1">{ratings} <span className="text-gray-400">({Math.floor(Math.random() * 100) + 10})</span></span>
+                        <span className="text-sm text-gray-600 ml-1">{product.average_rating} <span className="text-gray-400">({product.total_reviews} đánh giá)</span></span>
+                        {/* <span className="text-sm text-gray-600 ml-1">{ratings} <span className="text-gray-400">({Math.floor(Math.random() * 100) + 10})</span></span> */}
                     </div>
-                    <span className="text-xs text-gray-500">{sold} đã bán</span>
+                    <span className="text-xs text-gray-500">{product.quantitySold} đã bán</span>
                 </div>
 
                 <a className="font-medium text-gray-800 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors" href={`san-pham/${product._id}`}>{product.name}</a>
@@ -115,10 +93,10 @@ const ProductCard = ({ product, type = "default" }) => {
                         {discount > 0 ? (
                             <>
                                 <span className={`${style.priceColor} font-bold text-lg mr-2`}>
-                                    {Math.round(discountedPrice).toLocaleString('vi-VN')}đ
+                                    {Math.round(product.price).toLocaleString('vi-VN')}đ
                                 </span>
                                 <span className="text-gray-400 text-sm line-through">
-                                    {product.price.toLocaleString('vi-VN')}đ
+                                    {product.original_price.toLocaleString('vi-VN')}đ
                                 </span>
                             </>
                         ) : (
@@ -144,7 +122,7 @@ function HomePage() {
     const [featuredProducts, setFeaturedProducts] = useState([]);
     const [newProducts, setNewProducts] = useState([]);
     const [recommendedProducts, setRecommendedProducts] = useState([]);
-
+    const navigate = useNavigate();
     const categories = [
         { icon: <Phone className="h-10 w-10 text-blue-600" />, name: 'Điện thoại', color: 'bg-blue-50', count: '2.3k+ sản phẩm', slug: 'dien-thoai' },
         { icon: <Laptop className="h-10 w-10 text-indigo-600" />, name: 'Máy tính', color: 'bg-indigo-50', count: '1.5k+ sản phẩm', slug: 'may-tinh' },
@@ -181,7 +159,7 @@ function HomePage() {
     return (
         <div className="min-h-screen flex flex-col ">
             {/* Hero Banner with Carousel */}
-            
+
             <HeroSection />
 
             {/* Categories */}
@@ -226,7 +204,7 @@ function HomePage() {
                                 <Award className="ml-3 text-purple-600 h-6 w-6" />
                             </h2>
                         </div>
-                        <button className="text-purple-600 hover:text-purple-700 font-medium flex items-center group">
+                        <button className="text-purple-600 hover:text-purple-700 font-medium flex items-center group" onClick={() => navigate("/danh-cho-ban")}>
                             Xem tất cả
                             <ChevronRight className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                         </button>
@@ -251,7 +229,7 @@ function HomePage() {
                             <div className="w-1 h-8 bg-green-600 rounded-full mr-3"></div>
                             <h2 className="text-3xl font-bold text-gray-800">Sản phẩm mới</h2>
                         </div>
-                        <button className="text-green-600 hover:text-green-700 font-medium flex items-center group">
+                        <button className="text-green-600 hover:text-green-700 font-medium flex items-center group" onClick={() => navigate("/san-pham-moi")}>
                             Xem tất cả
                             <ChevronRight className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                         </button>

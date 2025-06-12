@@ -9,6 +9,7 @@ const errorHandler = require('./middlewares/errorMiddleware');
 const cloudinary = require('cloudinary').v2;
 const dotenv = require('dotenv');
 const routes = require('./routes/index');
+const SocketHandler = require("./socket/socketHandler");
 dotenv.config();
 // Tạo server http
 const server = http.createServer(app);
@@ -19,6 +20,10 @@ cloudinary.config({
 
 // Connect db
 dbConnect();
+
+const socketHandler = new SocketHandler(server);
+
+app.locals.socketHandler = socketHandler;
 
 // Config server
 app.use(cookieParser());

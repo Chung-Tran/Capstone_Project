@@ -1,3 +1,12 @@
+import {
+    ClockCircleOutlined,
+    SyncOutlined,
+    CheckCircleOutlined,
+    StopOutlined,
+    CloseCircleOutlined,
+    CheckOutlined
+} from '@ant-design/icons';
+
 const handleResponse = (response) => {
     if (!response.data.isSuccess) {
         throw new Error(response.data.message || 'Yêu cầu không thành công');
@@ -44,5 +53,49 @@ const formatTimeOnly = (isoString) => {
     return `${hours}:${minutes}`;
 };
 
+const getStatusOrder = (status) => {
+    const configs = {
+        pending: {
+            color: 'gold',
+            icon: <ClockCircleOutlined />,
+            text: 'Chờ xử lý'
+        },
+        processing: {
+            color: 'blue',
+            icon: <SyncOutlined spin />,
+            text: 'Đang xử lý'
+        },
+        shipped: {
+            color: 'cyan',
+            icon: <SyncOutlined />,
+            text: 'Đang vận chuyển'
+        },
+        delivered: {
+            color: 'green',
+            icon: <CheckCircleOutlined />,
+            text: 'Đã giao hàng'
+        },
+        cancelled: {
+            color: 'red',
+            icon: <StopOutlined />,
+            text: 'Đã hủy'
+        },
+        rejected: {
+            color: 'volcano',
+            icon: <CloseCircleOutlined />,
+            text: 'Bị từ chối'
+        },
+        done: {
+            color: 'purple',
+            icon: <CheckOutlined />,
+            text: 'Hoàn tất'
+        }
+    };
 
-export { handleResponse, handleError, formatCurrency, formatDateTime, formatTimeOnly };
+    return configs[status] || {
+        color: 'default',
+        icon: <ClockCircleOutlined />,
+        text: 'Không xác định'
+    };
+};
+export { handleResponse, handleError, formatCurrency, formatDateTime, formatTimeOnly, getStatusOrder };

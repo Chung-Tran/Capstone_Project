@@ -17,7 +17,7 @@ const shopService = {
             throw handleError(error);
         }
     },
-    
+
     getShopById: async (id) => {
         // Kiểm tra cache
         const cacheKey = `store_${id}`;
@@ -30,12 +30,12 @@ const shopService = {
             console.log(`Fetching store data for id: ${id}`);
             const response = await axiosClient.get(`/products/store/${id}`);
             const result = handleResponse(response);
-            
+
             // Lưu vào cache nếu request thành công
             if (result.isSuccess) {
                 cache[cacheKey] = result;
             }
-            
+
             return result;
         } catch (error) {
             console.error(`Error fetching store id: ${id}`, error);
@@ -46,61 +46,41 @@ const shopService = {
     // Thêm phương thức getShopProducts
     getShopProducts: async (shopId, params = {}) => {
         const cacheKey = `products_${shopId}_${JSON.stringify(params)}`;
-        
+
         // Kiểm tra cache (tùy chọn - có thể bỏ cache cho products để luôn lấy dữ liệu mới)
         // if (cache[cacheKey]) {
         //     console.log(`Returning cached products for shop id: ${shopId}`);
         //     return cache[cacheKey];
         // }
-        
+
         try {
             console.log(`Fetching products for shop id: ${shopId}`, params);
             const queryParams = new URLSearchParams();
-            
+
             // Thêm các tham số tìm kiếm vào URL
             Object.entries(params).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
                     queryParams.append(key, value);
                 }
             });
-            
+
             const queryString = queryParams.toString();
             const url = `/products?store_id=${shopId}${queryString ? `&${queryString}` : ''}`;
-            
+
             const response = await axiosClient.get(url);
             const result = handleResponse(response);
-            
+
             // Lưu vào cache nếu request thành công
             if (result.isSuccess) {
                 cache[cacheKey] = result;
             }
-            
+
             return result;
         } catch (error) {
             console.error(`Error fetching products for shop id: ${shopId}`, error);
             throw handleError(error);
         }
     },
-    
-    // Thêm phương thức để theo dõi shop
-    followShop: async (shopId) => {
-        try {
-            const response = await axiosClient.post(`/customers/shop/follow/${shopId}`);
-            return handleResponse(response);
-        } catch (error) {
-            throw handleError(error);
-        }
-    },
-    
-    // Thêm phương thức để bỏ theo dõi shop
-    unfollowShop: async (shopId) => {
-        try {
-            const response = await axiosClient.delete(`/customers/shop/follow/${shopId}`);
-            return handleResponse(response);
-        } catch (error) {
-            throw handleError(error);
-        }
-    }
 };
 
 export default shopService;

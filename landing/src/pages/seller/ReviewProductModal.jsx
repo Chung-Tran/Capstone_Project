@@ -151,41 +151,41 @@ const ReviewProductModal = ({ visible, product, onCancel }) => {
   const handleReply = async () => {
     try {
       setLoading(true);
-      
+
       // Kiểm tra nội dung phản hồi có trống không
       if (!replyForm.content.trim()) {
         showToast.warning('Phản hồi không được để trống');
         return;
       }
-      
+
       try {
         // Gọi API phản hồi đánh giá
         const response = await reviewService.reply_product_review(replyForm.reviewId, replyForm.content);
-        
+
         // Cập nhật state reviews
         setReviews(
           reviews.map((review) =>
             review._id === replyForm.reviewId
               ? {
-                  ...review,
-                  reply: {
-                    content: replyForm.content,
-                    replied_at: response?.data?.reply?.replied_at || new Date(),
-                  },
-                }
+                ...review,
+                reply: {
+                  content: replyForm.content,
+                  replied_at: response?.data?.reply?.replied_at || new Date(),
+                },
+              }
               : review
           )
         );
-        
+
         // Reset form và đóng dialog
         setReplyForm({ reviewId: null, content: '' });
         onCancel();
-        
+
         // Thông báo thành công
         showToast.success('Đã phản hồi đánh giá thành công');
       } catch (apiError) {
         console.error('Reply API error:', apiError);
-        
+
         // Xử lý trường hợp đặc biệt khi lỗi có message "Reply submitted successfully"
         if (apiError.message && apiError.message.includes('submitted successfully')) {
           // Đây thực ra là thành công nhưng được trả về dưới dạng lỗi
@@ -193,19 +193,19 @@ const ReviewProductModal = ({ visible, product, onCancel }) => {
             reviews.map((review) =>
               review._id === replyForm.reviewId
                 ? {
-                    ...review,
-                    reply: {
-                      content: replyForm.content,
-                      replied_at: new Date(),
-                    },
-                  }
+                  ...review,
+                  reply: {
+                    content: replyForm.content,
+                    replied_at: new Date(),
+                  },
+                }
                 : review
             )
           );
-          
+
           // Reset form và đóng dialog
           setReplyForm({ reviewId: null, content: '' });
-          
+
           // Thông báo thành công
           showToast.success('Đã phản hồi đánh giá thành công');
         } else {
@@ -429,17 +429,7 @@ const ReviewProductModal = ({ visible, product, onCancel }) => {
                               )}
                             </div>
                           </div>
-                          <Tag color={review.reply ? "success" : "warning"}>
-                            {review.reply ? (
-                              <>
-                                <CheckCircleOutlined /> Đã phản hồi
-                              </>
-                            ) : (
-                              <>
-                                <CloseCircleOutlined /> Chưa phản hồi
-                              </>
-                            )}
-                          </Tag>
+
                         </div>
                         <div className="mt-4 border-t pt-4">
                           {review.reply ? (

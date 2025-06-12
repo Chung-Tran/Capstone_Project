@@ -2,12 +2,13 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import date
 from services.predict_categories import predict_hot_products
+from services.forecast_inventory import forecast_inventory_status 
 from fastapi import Query
 
 router = APIRouter()
-
+# region // Dự đoán sản phẩm hot dựa trên các sự kiện sắp diễn ra
 class HotProductRequest(BaseModel):
     date: str  # Format YYYY-MM-DD
     period: Optional[int] = 90  # Số ngày dự đoán
@@ -35,3 +36,29 @@ async def get_hot_products(request: HotProductRequest) -> List[Dict]:
         raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error predicting hot products: {str(e)}")
+
+# endregion
+
+# region // Dự đoán sản phẩm sẽ hết hàng trong thời gian tới
+class SalesRecord(BaseModel):
+    date: date  
+    quantity: int
+class SalesHistoryItem(BaseModel):
+    product_id: str
+    sales_history: List[SalesRecord]  # [{"date": "2025-05-10", "quantity": 5}, ...]
+    current_stock: int
+    minimum_stock: int
+
+class ForecastInventoryRequest(BaseModel):
+    store_id: str
+    products: List[SalesHistoryItem]
+
+@router.post("/predict/inventory-forecast")
+async def forecast_inventory(request: ForecastInventoryRequest) -> Dict:
+    try:
+        result = await forecast_inventory_status(request.store_id, request.products)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error forecasting inventory: {str(e)}")
+    
+# endregion

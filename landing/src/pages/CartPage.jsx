@@ -8,6 +8,8 @@ import { usePaymentPolling } from '../utils/paymentPoling';
 import { showToast } from '../utils/toast';
 import { set } from 'lodash';
 import PaymentResult from '../components/payment/PaymentResult';
+import { useDispatch } from 'react-redux';
+import { decrementCartCount } from '../store/slices/authSlice';
 
 // Shop Items Component (optimized)
 const ShopItems = ({ shop, shopId, updateQuantity, removeItem, formatPrice, calculateShopSubtotal }) => {
@@ -90,7 +92,7 @@ const ShopItems = ({ shop, shopId, updateQuantity, removeItem, formatPrice, calc
                                     </button>
                                 </div>
                                 <button
-                                    onClick={() => removeItem(shopId, item._id)}
+                                    onClick={() => removeItem(shopId, item._id, item.quantity)}
                                     className="ml-4 text-red-500 hover:text-red-700 transition"
                                 >
                                     <Trash2 size={20} />
@@ -112,6 +114,7 @@ const ShopItems = ({ shop, shopId, updateQuantity, removeItem, formatPrice, calc
 
 export default function ShoppingCart() {
     const { setLoading } = useLoading();
+    const dispatch = useDispatch()
     const [cartByShop, setCartByShop] = useState({});
     const [shipping, setShipping] = useState(30000);
     const [receiverName, setReceiverName] = useState("");
@@ -199,7 +202,7 @@ export default function ShoppingCart() {
         }
     };
 
-    const removeItem = async (shopId, itemId) => {
+    const removeItem = async (shopId, itemId, quantity) => {
         setCartByShop(prev => {
             const updatedItems = prev[shopId].items.filter(item => item._id !== itemId);
 
@@ -218,7 +221,8 @@ export default function ShoppingCart() {
         });
 
         try {
-            await customerItemsService.remove_from_cart(itemId);
+            await customerItemsService.removeCartItem(itemId);
+            dispatch(decrementCartCount(quantity))
         } catch (error) {
             console.error('Lỗi khi xóa sản phẩm:', error);
             fetchData();
@@ -261,6 +265,9 @@ export default function ShoppingCart() {
     };
     const createOrder = async () => {
         try {
+            if (!receiverName || !receiverPhone || !address)
+                return showToast.error("Vui lòng nhập đầy đủ thông tin giao hàng");
+
             setLoading(true);
             const orderData = {
                 // cartItems: cartByShop, //data da group theo shop
@@ -283,6 +290,7 @@ export default function ShoppingCart() {
 
             const response = await orderService.create_order(orderData);
             if (response.isSuccess) {
+                dispatch(decrementCartCount(1000))
                 if (paymentMethod === 'online') {
                     const paymentData = {
                         orderId: response.data._id,
@@ -297,6 +305,7 @@ export default function ShoppingCart() {
                     //todo: handle deposit payment
                     showToast.success('Chưa hỗ trợ thanh toán đặt cọc.');
                 }
+
             } else {
                 alert('Đặt hàng thất bại. Vui lòng thử lại.');
             }

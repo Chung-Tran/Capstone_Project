@@ -30,7 +30,6 @@ const createProduct = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Tên sản phẩm và giá bán là bắt buộc');
     }
-    console.log("process.env.CLOUDINARY_API_KEY", process.env.CLOUDINARY_API_KEY)
     const store = await Store.findOne({ owner_id: req.user._id });
     if (!store) {
         res.status(404);
@@ -104,7 +103,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance' } = req.query;
+    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance', store_id } = req.query;
 
     const query = {};
     if (categories) {
@@ -129,7 +128,10 @@ const getProducts = asyncHandler(async (req, res) => {
         if (minPrice) query.price.$gte = Number(minPrice);
         if (maxPrice) query.price.$lte = Number(maxPrice);
     }
+    if (store_id) {
+        query.store_id = store_id
 
+    }
     // Xử lý sortOption
     let sortQuery = {};
     switch (sortOption) {
@@ -361,41 +363,167 @@ const getProductByStoreId = asyncHandler(async (req, res) => {
     const store_id = store._id;
 
     const products = await Product.find({ store_id })
-        .populate('category_id');
+        .populate('category_id').sort({ _id: -1 });
 
     res.status(200).json(formatResponse(true, products, "Lấy sản phẩm thành công"));
 });
+
 const getProductFeatured = asyncHandler(async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
         const skip = parseInt(req.query.skip) || 0;
+
         const products = await Product.find({
             is_featured: true,
             status: "active"
-        }).sort({ quantitySold: -1, averageRating: -1 }) // sắp xếp sản phẩm nổi bật theo giá SL bán và đánh giá giảm dần
+        })
+            .sort({ quantitySold: -1, averageRating: -1 })
             .skip(skip)
             .limit(limit);
 
-        res.status(200).json(formatResponse(true, products, "Lấy sản phẩm nổi bật thành công"));
+        const productIds = products.map(p => p._id);
+
+        // Lấy tất cả review liên quan
+        const reviews = await Review.find({
+            product_id: { $in: productIds },
+            review_type: 'product_review'
+        });
+
+        // Gom nhóm review theo product_id
+        const reviewMap = {};
+        reviews.forEach(review => {
+            const pid = review.product_id.toString();
+            if (!reviewMap[pid]) reviewMap[pid] = [];
+            reviewMap[pid].push(review);
+        });
+
+        // Gắn dữ liệu review vào từng sản phẩm
+        const productsWithReviews = products.map(product => {
+            const pid = product._id.toString();
+            const productReviews = reviewMap[pid] || [];
+            const totalReviews = productReviews.length;
+
+            let averageRating = 0;
+            if (totalReviews > 0) {
+                const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
+                averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+            }
+
+            return {
+                ...product.toObject(),
+                average_rating: averageRating,
+                total_reviews: totalReviews
+            };
+        });
+
+        res.status(200).json(formatResponse(true, productsWithReviews, "Lấy sản phẩm nổi bật thành công"));
     } catch (err) {
+        console.error(err);
         res.status(500).json(formatResponse(false, null, "Lỗi server"));
     }
 });
+
+const getProductRelate = asyncHandler(async (req, res) => {
+    try {
+        const { categories, limit = 10, skip = 0, ...relateData } = req.body;
+
+        const query = {
+            status: "active"
+        };
+
+        if (categories && Array.isArray(categories) && categories.length > 0) {
+            query.category_id = { $in: categories };
+        }
+        const products = await Product.find(query)
+            .sort({ quantitySold: -1, averageRating: -1 })
+            .skip(Number(skip))
+            .limit(Number(limit));
+        const productIds = products.map(item => item._id)
+        const reviews = await Review.find({
+            product_id: { $in: productIds },
+            review_type: 'product_review'
+        });
+        console.log(reviews)
+        const reviewMap = {};
+        reviews.forEach(review => {
+            const pid = review.product_id.toString();
+            if (!reviewMap[pid]) reviewMap[pid] = [];
+            reviewMap[pid].push(review);
+        });
+        let productsWithRatings = products.map(product => {
+            const pid = product._id.toString();
+            const productReviews = reviewMap[pid] || [];
+            const totalReviews = productReviews.length;
+            let averageRating = 0;
+
+            if (totalReviews > 0) {
+                const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
+                averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+            }
+
+            return {
+                ...product.toObject(),
+                average_rating: averageRating,
+                total_reviews: totalReviews
+            };
+        });
+        res.status(200).json(formatResponse(true, productsWithRatings, "Lấy sản phẩm liên quan thành công"));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(formatResponse(false, null, "Lỗi server"));
+    }
+});
+
 const getProductNew = asyncHandler(async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
         const skip = parseInt(req.query.skip) || 0;
-        const products = await Product.find({
-            status: "active"
-        }).sort({ createdAt: -1 }) // sắp xếp sản phẩm mới tạo
+
+        const products = await Product.find({ status: "active" })
+            .sort({ _id: -1 }) // sản phẩm mới nhất
             .skip(skip)
             .limit(limit);
 
-        res.status(200).json(formatResponse(true, products, "Lấy sản phẩm nổi bật thành công"));
+        const productIds = products.map(item => item._id);
+
+        const reviews = await Review.find({
+            product_id: { $in: productIds },
+            review_type: 'product_review'
+        });
+
+        const reviewMap = {};
+        reviews.forEach(review => {
+            const pid = review.product_id.toString();
+            if (!reviewMap[pid]) reviewMap[pid] = [];
+            reviewMap[pid].push(review);
+        });
+
+        const productsWithRatings = products.map(product => {
+            const pid = product._id.toString();
+            const productReviews = reviewMap[pid] || [];
+            const totalReviews = productReviews.length;
+
+            let averageRating = 0;
+            if (totalReviews > 0) {
+                const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
+                averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+            }
+
+            return {
+                ...product.toObject(),
+                average_rating: averageRating,
+                total_reviews: totalReviews
+            };
+        });
+
+        res.status(200).json(formatResponse(true, productsWithRatings, "Lấy sản phẩm mới thành công"));
     } catch (err) {
+        console.error(err);
         res.status(500).json(formatResponse(false, null, "Lỗi server"));
     }
 });
+
+
 const getStoreById = asyncHandler(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
         res.status(400);
@@ -407,7 +535,7 @@ const getStoreById = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Không tìm thấy cửa hàng');
     }
-
+    console.log("checkin")
     const totalProduct = await Product.countDocuments({ store_id: store._id, status: 'active' });
 
     const shopReviews = await Review.find({ store_id: store._id, review_type: 'shop_review' });
@@ -439,5 +567,6 @@ module.exports = {
         getProductFeatured,
         getProductNew,
         getStoreById,
+        getProductRelate,
     }
 };

@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLoading } from '../utils/useLoading';
 import { price_range_filter, sortOptions } from '../common/Constant';
 import { useSelector } from 'react-redux';
+import create_logger from '../config/logger';
 
 const ProductItemHorizontal = (product) => {
     return (
@@ -58,7 +59,7 @@ const ProductItemHorizontal = (product) => {
                             <span className="ml-1 text-sm text-gray-600">({product.total_reviews})</span>
                         </div>
                         <div className="text-sm text-gray-600">
-                            <span>Đã bán {product.soldCount}</span>
+                            <span>Đã bán {product.quantitySold}</span>
                         </div>
                     </div>
 
@@ -263,6 +264,13 @@ const SearchProductPage = () => {
                     totalItems: total,
                     itemsPerPage: limit
                 });
+
+                create_logger({
+                    customer_id: localStorage.getItem('customer_id'),
+                    action_type: 'search',
+                    product_id: null,
+                    keyword: keyword,
+                })
             } else {
                 setProducts([]);
             }

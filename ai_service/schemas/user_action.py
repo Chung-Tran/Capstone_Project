@@ -1,10 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
 class UserAction(BaseModel):
     customer_id: str
-    action_type: Optional[str]
-    product_id: Optional[str]
-    category: Optional[str]
-    timestamp: Optional[int] = None
+    action_type: str
+    product_id: Optional[str] = None
+    category: Optional[str] = None
+    keyword: Optional[str] = None
+    timestamp: Optional[int] = None  # Epoch time (sẽ chuyển về datetime trong controller)
