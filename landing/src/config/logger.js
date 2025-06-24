@@ -10,11 +10,15 @@ const axiosLogger = axios.create({
 
 const create_logger = async (logInfo) => {
     const logRequest = {
-        customer_id: logInfo.customer_id,
+        customer_id: logInfo.customer_id || null,
         action_type: logInfo.action_type,
-        product_id: logInfo.product_id,
-        category: logInfo?.category || "",
-        keyword: logInfo?.keyword || "",
+        product_id: logInfo.product_id || null,
+        store_id: logInfo.store_id || null,
+        category: logInfo.categories?.toString() || "",
+        priceRange: logInfo.priceRange || "",
+        keyword: logInfo.keyword || "",
+        description: logInfo.description || "",
+        created_at: new Date().toISOString(),
     };
     try {
         const response = await axiosLogger.post('/log-action', logRequest);

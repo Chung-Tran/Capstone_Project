@@ -8,6 +8,8 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from loguru import logger
 from typing import Tuple, Dict, Any
 import time
+from datetime import datetime, timedelta
+from typing import Dict, List
 
 # Đường dẫn file
 MODEL_PATH = "models/sentiment_models/CNN-LSTM-model.keras"
@@ -233,3 +235,38 @@ def clear_cache() -> None:
     cache_size = len(_sentiment_cache)
     _sentiment_cache = {}
     logger.info(f"Cleared sentiment analysis cache ({cache_size} entries)")
+
+
+def filter_stores_with_negative_comments(analysis_result: List[Dict]) -> List[Dict]:
+    """
+    Lọc chỉ các store có comments tiêu cực
+    
+    Args:
+        analysis_result: Kết quả từ analyze_stores_sentiment
+        
+    Returns:
+        Danh sách chỉ các store có comments tiêu cực
+    """
+    return [store for store in analysis_result if store.get("negative_comments")]
+
+# Utility function để thống kê tổng quan
+def get_sentiment_summary(analysis_result: List[Dict]) -> Dict:
+    """
+    Tạo báo cáo tổng quan về sentiment analysis
+    
+    Args:
+        analysis_result: Kết quả từ analyze_stores_sentiment
+        
+    Returns:
+        Dictionary chứa thông tin tổng quan
+    """
+    total_stores = len(analysis_result)
+    stores_with_negative = len([store for store in analysis_result if store.get("negative_comments")])
+    total_negative_comments = sum(len(store.get("negative_comments", [])) for store in analysis_result)
+    
+    return {
+        "total_stores_analyzed": total_stores,
+        "stores_with_negative_comments": stores_with_negative,
+        "total_negative_comments": total_negative_comments,
+        "analysis_timestamp": datetime.now().isoformat()
+    }

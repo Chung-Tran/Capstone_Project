@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, DatePicker, Space, Divider, Card, message, Upload, Image, Tooltip, Progress } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, ExclamationCircleOutlined, UploadOutlined, LoadingOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -8,10 +8,11 @@ import uploadService from '../../services/upload.service';
 
 const { TextArea } = Input;
 
-export default function TraceProductAddModal({ open, onClose, productId, productData }) {
+export default function TraceProductAddModal({ open, onClose, productData, isEditing }) {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [modal, contextHolder] = Modal.useModal();
+    const [traceData, setTraceData] = useState(null); // For editing existing trace data
     const [uploadingSteps, setUploadingSteps] = useState({}); // Track upload status cho từng step
     const [previewImage, setPreviewImage] = useState('');
     const [previewVisible, setPreviewVisible] = useState(false);
@@ -109,7 +110,7 @@ export default function TraceProductAddModal({ open, onClose, productId, product
             reader.onerror = (error) => reject(error);
         });
 
-    const ImageUploadField = ({ stepIndex, value = [], onChange }) => {
+    const ImageUploadField = ({ stepIndex, value = [], onChange, disabled }) => {
         const uploadProps = {
             name: 'image',
             multiple: true,
@@ -147,7 +148,7 @@ export default function TraceProductAddModal({ open, onClose, productId, product
 
         return (
             <div className="image-upload-container">
-                <Upload {...uploadProps}>
+                <Upload {...uploadProps} disabled={disabled}>
                     {value.length >= 10 ? null : uploadButton}
                 </Upload>
 
@@ -178,36 +179,59 @@ export default function TraceProductAddModal({ open, onClose, productId, product
 
     const handleFinish = (values) => {
         modal.confirm({
-            title: 'Bạn có chắc muốn xác thực?',
+            title: isEditing ? 'Xác nhận bổ sung dữ liệu?' : 'Bạn có chắc muốn xác thực?',
             icon: <ExclamationCircleOutlined />,
-            content: 'Dữ liệu sau khi xác thực sẽ được ghi lên blockchain và không thể thay đổi.',
+            content: isEditing
+                ? 'Dữ liệu mới sẽ được ghi thêm vào blockchain, không thể thay đổi các bước trước đó.'
+                : 'Dữ liệu sau khi xác thực sẽ được ghi lên blockchain và không thể thay đổi.',
             okText: 'Xác nhận ghi vào blockchain',
             cancelText: 'Huỷ',
             onOk: async () => {
                 setLoading(true);
                 try {
-                    // Format data
-                    const formatted = {
+                    const formattedSteps = values.supplyChainSteps.map(step => ({
+                        ...step,
+                        timestamp: step.timestamp?.toISOString(),
+                        images: step.images?.map(img => img.url) || []
+                    }));
+
+                    const payload = {
                         ...values,
                         productId: productData._id,
                         timestamp: values.timestamp?.toISOString(),
-                        supplyChainSteps: values.supplyChainSteps.map(step => ({
-                            ...step,
-                            timestamp: step.timestamp?.toISOString(),
-                            images: step.images?.map(img => img.url) || [] // Convert to array of URLs
-                        }))
+                        supplyChainSteps: formattedSteps
                     };
 
-                    // Upload toàn bộ formatted object lên IPFS
-                    const response = await traceProductService.addProductTrace(formatted);
+                    let response;
+
+                    if (isEditing) {
+                        // Chỉ gửi newStep cuối cùng
+                        const existingStepCount = traceData?.length || 0;
+
+                        // Lấy toàn bộ step mới người dùng vừa thêm
+                        const newSteps = formattedSteps.slice(existingStepCount);
+
+                        if (newSteps.length === 0) {
+                            showToast.warning("Không có bước mới nào được thêm");
+                            return;
+                        }
+
+                        response = await traceProductService.updateProductTrace({
+                            productId: productData._id,
+                            newSteps, // truyền mảng steps mới
+                        });
+
+                    } else {
+                        response = await traceProductService.addProductTrace(payload);
+                    }
 
                     if (response.isSuccess) {
-                        showToast.success("Xác thực nguồn gốc sản phẩm thành công");
+                        showToast.success("Ghi nhận nguồn gốc thành công");
                         form.resetFields();
                         onClose();
                     }
                 } catch (err) {
-                    showToast.error(err.message || "Xác thực nguồn gốc sản phẩm thất bại");
+                    showToast.error(err.message || "Ghi nhận thất bại");
                     console.error('Submit error:', err);
                 } finally {
                     setLoading(false);
@@ -215,6 +239,31 @@ export default function TraceProductAddModal({ open, onClose, productId, product
             }
         });
     };
+
+    useEffect(() => {
+        if (isEditing) {
+            const fetchTraceData = async () => {
+                setLoading(true);
+                try {
+                    const response = await traceProductService.getProductTrace(productData._id);
+                    if (response.isSuccess) {
+                        const steps = response.data.traceData.supplyChainSteps.map((step) => ({
+                            ...step,
+                            timestamp: dayjs(step.timestamp),
+                            images: step.images?.map(url => ({ url }))
+                        }));
+                        setTraceData(steps);
+                    }
+                } catch (err) {
+                    console.error('Lỗi khi fetch traceData:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchTraceData();
+        }
+    }, [isEditing]);
+
 
     return (
         <>
@@ -237,7 +286,7 @@ export default function TraceProductAddModal({ open, onClose, productId, product
                     layout="vertical"
                     onFinish={handleFinish}
                     initialValues={{
-                        supplyChainSteps: [],
+                        supplyChainSteps: isEditing && traceData ? traceData : [],
                         timestamp: dayjs()
                     }}
                 >
@@ -256,6 +305,8 @@ export default function TraceProductAddModal({ open, onClose, productId, product
                                 style={{ width: '100%' }}
                                 format="DD/MM/YYYY"
                                 placeholder="Chọn ngày"
+                                disabled={true}
+                                value={(isEditing && traceData) ? dayjs(traceData[0].timestamp) : dayjs()}
                             />
                         </Form.Item>
                     </Space>
@@ -263,128 +314,103 @@ export default function TraceProductAddModal({ open, onClose, productId, product
                     <Divider>Chuỗi cung ứng</Divider>
 
                     <Form.List name="supplyChainSteps">
-                        {(fields, { add, remove }) => (
-                            <div>
-                                {fields.map(({ key, name, ...rest }, index) => (
-                                    <Card
-                                        key={key}
-                                        size="small"
-                                        style={{ marginBottom: 16 }}
-                                        title={
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span>Bước {index + 1}</span>
-                                                <Button
-                                                    danger
-                                                    size="small"
-                                                    onClick={() => remove(name)}
-                                                    icon={<DeleteOutlined />}
-                                                    disabled={loading}
-                                                >
-                                                    Xoá bước
-                                                </Button>
-                                            </div>
-                                        }
-                                    >
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                            <Form.Item
-                                                {...rest}
-                                                name={[name, 'step']}
-                                                label="Tên giai đoạn"
-                                                rules={[{ required: true, message: 'Vui lòng nhập tên giai đoạn' }]}
-                                            >
-                                                <Input placeholder="VD: Shipped to warehouse" />
-                                            </Form.Item>
-
-                                            <Form.Item
-                                                {...rest}
-                                                name={[name, 'location']}
-                                                label="Địa điểm"
-                                                rules={[{ required: true, message: 'Vui lòng nhập địa điểm' }]}
-                                            >
-                                                <Input placeholder="VD: Singapore" />
-                                            </Form.Item>
-
-                                            <Form.Item
-                                                {...rest}
-                                                name={[name, 'timestamp']}
-                                                label="Thời gian"
-                                                rules={[{ required: true, message: 'Vui lòng chọn thời gian' }]}
-                                            >
-                                                <DatePicker
-                                                    style={{ width: '100%' }}
-                                                    format="DD/MM/YYYY"
-                                                    placeholder="Chọn ngày"
-                                                />
-                                            </Form.Item>
-
-                                            <Form.Item
-                                                {...rest}
-                                                name={[name, 'verifiedBy']}
-                                                label="Đơn vị xác minh"
-                                                rules={[{ required: true, message: 'Vui lòng nhập đơn vị xác minh' }]}
-                                            >
-                                                <Input placeholder="VD: DHL Express" />
-                                            </Form.Item>
-                                        </div>
-
-                                        <Form.Item
-                                            {...rest}
-                                            name={[name, 'description']}
-                                            label="Mô tả"
-                                            rules={[{ required: true, message: 'Vui lòng nhập mô tả' }]}
-                                        >
-                                            <TextArea
-                                                rows={2}
-                                                placeholder="VD: Giao đến kho phân phối..."
-                                                showCount
-                                                maxLength={500}
-                                            />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                            {...rest}
-                                            name={[name, 'images']}
-                                            label={
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span>Hình ảnh bằng chứng</span>
-                                                    <Tooltip title="Tối đa 10 hình ảnh, định dạng JPG, PNG. Kích thước tối đa 5MB/ảnh">
-                                                        <Button type="link" size="small" icon={<ExclamationCircleOutlined />} />
-                                                    </Tooltip>
-                                                </div>
-                                            }
-                                            rules={[{
-                                                required: true,
-                                                message: 'Vui lòng upload ít nhất 1 hình ảnh',
-                                                validator: (_, value) => {
-                                                    if (!value || value.length === 0) {
-                                                        return Promise.reject('Vui lòng upload ít nhất 1 hình ảnh');
-                                                    }
-                                                    return Promise.resolve();
+                        {(fields, { add, remove }) => {
+                            const existingCount = isEditing && traceData ? traceData.length : 0;
+                            return (
+                                <div>
+                                    {fields.map(({ key, name, ...rest }, index) => {
+                                        const isOldStep = isEditing && index < existingCount;
+                                        return (
+                                            <Card
+                                                key={key}
+                                                size="small"
+                                                style={{ marginBottom: 16, backgroundColor: isOldStep ? '#f9f9f9' : undefined }}
+                                                title={`Bước ${index + 1} ${isOldStep ? '(Đã ghi nhận)' : ''}`}
+                                                extra={
+                                                    !isOldStep && (
+                                                        <Button
+                                                            danger
+                                                            size="small"
+                                                            onClick={() => remove(name)}
+                                                            icon={<DeleteOutlined />}
+                                                            disabled={loading}
+                                                        >
+                                                            Xoá bước
+                                                        </Button>
+                                                    )
                                                 }
-                                            }]}
-                                        >
-                                            <ImageUploadField stepIndex={name} />
-                                        </Form.Item>
-                                    </Card>
-                                ))}
+                                            >
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Form.Item
+                                                        {...rest}
+                                                        name={[name, 'step']}
+                                                        label="Tên giai đoạn"
+                                                    >
+                                                        <Input disabled={isOldStep} />
+                                                    </Form.Item>
 
-                                <Button
-                                    type="dashed"
-                                    onClick={() => add()}
-                                    block
-                                    icon={<PlusOutlined />}
-                                    disabled={loading}
-                                    size="large"
-                                    style={{
-                                        height: '48px',
-                                        borderStyle: 'dashed',
-                                        borderWidth: '2px'
-                                    }}
-                                >
-                                    Thêm bước mới
-                                </Button>
-                            </div>
-                        )}
+                                                    <Form.Item
+                                                        {...rest}
+                                                        name={[name, 'location']}
+                                                        label="Địa điểm"
+                                                    >
+                                                        <Input disabled={isOldStep} />
+                                                    </Form.Item>
+
+                                                    <Form.Item
+                                                        {...rest}
+                                                        name={[name, 'timestamp']}
+                                                        label="Thời gian"
+                                                    >
+                                                        <DatePicker style={{ width: '100%' }} disabled={isOldStep} format="DD/MM/YYYY" />
+                                                    </Form.Item>
+
+                                                    <Form.Item
+                                                        {...rest}
+                                                        name={[name, 'verifiedBy']}
+                                                        label="Đơn vị xác minh"
+                                                    >
+                                                        <Input disabled={isOldStep} />
+                                                    </Form.Item>
+                                                </div>
+
+                                                <Form.Item
+                                                    {...rest}
+                                                    name={[name, 'description']}
+                                                    label="Mô tả"
+                                                >
+                                                    <TextArea rows={2} disabled={isOldStep} />
+                                                </Form.Item>
+
+                                                <Form.Item
+                                                    {...rest}
+                                                    name={[name, 'images']}
+                                                    label="Hình ảnh bằng chứng"
+                                                >
+                                                    <ImageUploadField stepIndex={name} disabled={isOldStep} />
+                                                </Form.Item>
+                                            </Card>
+                                        );
+                                    })}
+
+                                    <Button
+                                        type="dashed"
+                                        onClick={() => add()}
+                                        block
+                                        icon={<PlusOutlined />}
+                                        disabled={loading}
+                                        size="large"
+                                        style={{
+                                            height: '48px',
+                                            borderStyle: 'dashed',
+                                            borderWidth: '2px'
+                                        }}
+                                    >
+                                        Thêm bước mới
+                                    </Button>
+                                </div>
+                            )
+                        }}
                     </Form.List>
                 </Form>
             </Modal>

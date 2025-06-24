@@ -23,11 +23,10 @@ class CategoriesRecommender:
     def load_metadata(self):
         """Load các file metadata từ thư mục model"""
         try:
-            with open(f"{self.model_dir}/category_mapping.json", "r", encoding="utf-8") as f:
-                self.category_mapping = json.load(f)
             with open(f"{self.model_dir}/event_mapping.json", "r", encoding="utf-8") as f:
                 self.event_mapping = json.load(f)
-            self.category_encoder = joblib.load(f"{self.model_dir}/category_encoder.pkl")
+            with open(f"{self.model_dir}/event_to_categories.json", "r", encoding="utf-8") as f:
+                self.event_to_categories = json.load(f)
             self.event_encoder = joblib.load(f"{self.model_dir}/event_encoder.pkl")
             logger.debug("Loaded metadata files successfully")
         except Exception as e:
@@ -53,7 +52,7 @@ class CategoriesRecommender:
             top_n: Số lượng sản phẩm hot nhất muốn trả về
             
         Returns:
-            List của dict, mỗi dict chứa category, event và count
+            List của dict, mỗi dict chứa event, categories, dates và frequency
         """
         try:
             input_date = pd.to_datetime(input_date_str)
@@ -71,23 +70,24 @@ class CategoriesRecommender:
             "DayOfWeek": [d.weekday() for d in future_dates]
         })
         
-        # Dự đoán sử dụng model
+        # Dự đoán sử dụng model (chỉ dự đoán event)
         X_future = future[["Month", "Day", "DayOfWeek"]]
         predictions = self.model.predict(X_future)
         
-        # Chuyển đổi mã hóa về tên thể loại và sự kiện
-        predicted_categories = self.category_encoder.inverse_transform(predictions[:, 0])
-        predicted_events = self.event_encoder.inverse_transform(predictions[:, 1])
+        # Chuyển đổi mã hóa về tên sự kiện
+        predicted_events = self.event_encoder.inverse_transform(predictions)
         
         # Kết hợp dự đoán với ngày tương ứng
         results = []
-        for i, (date, category, event) in enumerate(zip(future_dates, predicted_categories, predicted_events)):
-            # Chỉ thêm những dự đoán có sự kiện và thể loại không phải "None"
-            if category != "None" and event != "None":
+        for i, (date, event) in enumerate(zip(future_dates, predicted_events)):
+            # Chỉ thêm những dự đoán có sự kiện không phải "None"
+            if event != "None":
+                # Lấy tất cả categories cho event này
+                categories = self.event_to_categories.get(event, [])
                 results.append({
                     "date": date.strftime("%Y-%m-%d"),
-                    "category": category, 
-                    "event": event
+                    "event": event,
+                    "categories": categories
                 })
         
         # Log kết quả dự đoán chi tiết để dễ debug
@@ -95,19 +95,61 @@ class CategoriesRecommender:
         
         # Nếu không có kết quả, trả về danh sách trống
         if not results:
-            logger.warning("No matching events/categories found in prediction period")
+            logger.warning("No matching events found in prediction period")
             return []
         
-        # Nhóm theo thể loại và sự kiện để lấy top N
+        # Group theo event để đếm số lần xuất hiện và gộp dates
         result_df = pd.DataFrame(results)
-        top_results = result_df.groupby(["category", "event"]).size().reset_index(name="count")
-        top_results = top_results.sort_values("count", ascending=False).head(top_n)
+        grouped = result_df.groupby(['event']).agg({
+            'categories': 'first',  # Categories giống nhau cho cùng event
+            'date': list  # Gom tất cả dates có event này
+        }).reset_index()
+        
+        # Sắp xếp theo số lần xuất hiện (số ngày có event)
+        grouped['count'] = grouped['date'].apply(len)
+        grouped = grouped.sort_values('count', ascending=False).head(top_n)
         
         # Format kết quả trả về
-        output = [
-            {"category": row["category"], "event": row["event"], "count": int(row["count"])}
-            for _, row in top_results.iterrows()
-        ]
+        output = []
+        for _, row in grouped.iterrows():
+            output.append({
+                "event": row["event"],
+                "categories": row["categories"],
+                "dates": row["date"],
+                "frequency": int(row["count"])
+            })
         
-        logger.info(f"Predicted {len(output)} hot products")
+        logger.info(f"Predicted {len(output)} hot product events")
         return output
+    
+    def get_categories_for_date_range(self, input_date_str, period=90):
+        """
+        Lấy tất cả categories duy nhất trong khoảng thời gian dự đoán
+        
+        Args:
+            input_date_str: Ngày bắt đầu dự đoán
+            period: Số ngày dự đoán
+            
+        Returns:
+            List các categories duy nhất
+        """
+        predictions = self.predict_hot_products(input_date_str, period, top_n=100)
+        
+        all_categories = set()
+        for pred in predictions:
+            all_categories.update(pred["categories"])
+        
+        return sorted(list(all_categories))
+    
+    def get_events_for_date_range(self, input_date_str, period=90):
+        """
+        Lấy tất cả events trong khoảng thời gian dự đoán
+        
+        Args:
+            input_date_str: Ngày bắt đầu dự đoán
+            period: Số ngày dự đoán
+            
+        Returns:
+            List các events với thông tin chi tiết
+        """
+        return self.predict_hot_products(input_date_str, period, top_n=100)

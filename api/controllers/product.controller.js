@@ -4,8 +4,12 @@ const Product = require('../models/product.model');
 const Store = require('../models/store.model');
 const Category = require('../models/category.model');
 const Review = require('../models/review.model');
+const Order = require('../models/order.model');
+const OrderItem = require('../models/orderItem.model');
+const Recommendation = require('../models/recommendation.model');
 const formatResponse = require('../middlewares/responseFormat');
 const { uploadImage } = require('../services/uploadService');
+const { calculateProductRatings } = require('../common/MethodCommon');
 
 const createProduct = asyncHandler(async (req, res) => {
     const {
@@ -103,8 +107,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance', store_id } = req.query;
-
+    const { page = 1, limit = 10, categories, slug, keyword, maxPrice, minPrice, minRating, sortOption = 'relevance', store_id, userId } = req.query;
     const query = {};
     if (categories) {
         let categoriesQuery = categories.split(',')
@@ -132,6 +135,7 @@ const getProducts = asyncHandler(async (req, res) => {
         query.store_id = store_id
 
     }
+
     // Xử lý sortOption
     let sortQuery = {};
     switch (sortOption) {
@@ -167,37 +171,7 @@ const getProducts = asyncHandler(async (req, res) => {
     const products = await productQuery;
     const total = await Product.countDocuments(query);
 
-    const productIds = products.map(p => p._id);
-
-    const reviews = await Review.find({
-        product_id: { $in: productIds },
-        review_type: 'product_review'
-    });
-
-    const reviewMap = {};
-    reviews.forEach(review => {
-        const pid = review.product_id.toString();
-        if (!reviewMap[pid]) reviewMap[pid] = [];
-        reviewMap[pid].push(review);
-    });
-
-    let productsWithRatings = products.map(product => {
-        const pid = product._id.toString();
-        const productReviews = reviewMap[pid] || [];
-        const totalReviews = productReviews.length;
-        let averageRating = 0;
-
-        if (totalReviews > 0) {
-            const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
-            averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
-        }
-
-        return {
-            ...product.toObject(),
-            average_rating: averageRating,
-            total_reviews: totalReviews
-        };
-    });
+    let productsWithRatings = await calculateProductRatings(products);
 
     // Lọc theo minRating nếu có
     if (minRating) {
@@ -215,8 +189,6 @@ const getProducts = asyncHandler(async (req, res) => {
         totalPages: Math.ceil(total / limit)
     }));
 });
-
-
 
 
 const getProductById = asyncHandler(async (req, res) => {
@@ -344,7 +316,12 @@ const deleteProduct = asyncHandler(async (req, res) => {
     }
 
     const product = await Product.findById(req.params.id);
-
+    const orderExist = await OrderItem.findOne({
+        product_id: req.params.id
+    });
+    if (orderExist) {
+        return res.json(formatResponse(false, null, 'Không thể xóa sản phẩm đã tồn tại trong đơn hàng'));
+    }
     if (product) {
         await product.deleteOne();
         res.json(formatResponse(true, null, 'Product deleted successfully'));
@@ -382,39 +359,7 @@ const getProductFeatured = asyncHandler(async (req, res) => {
             .limit(limit);
 
         const productIds = products.map(p => p._id);
-
-        // Lấy tất cả review liên quan
-        const reviews = await Review.find({
-            product_id: { $in: productIds },
-            review_type: 'product_review'
-        });
-
-        // Gom nhóm review theo product_id
-        const reviewMap = {};
-        reviews.forEach(review => {
-            const pid = review.product_id.toString();
-            if (!reviewMap[pid]) reviewMap[pid] = [];
-            reviewMap[pid].push(review);
-        });
-
-        // Gắn dữ liệu review vào từng sản phẩm
-        const productsWithReviews = products.map(product => {
-            const pid = product._id.toString();
-            const productReviews = reviewMap[pid] || [];
-            const totalReviews = productReviews.length;
-
-            let averageRating = 0;
-            if (totalReviews > 0) {
-                const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
-                averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
-            }
-
-            return {
-                ...product.toObject(),
-                average_rating: averageRating,
-                total_reviews: totalReviews
-            };
-        });
+        const productsWithReviews = await calculateProductRatings(products);
 
         res.status(200).json(formatResponse(true, productsWithReviews, "Lấy sản phẩm nổi bật thành công"));
     } catch (err) {
@@ -422,6 +367,89 @@ const getProductFeatured = asyncHandler(async (req, res) => {
         res.status(500).json(formatResponse(false, null, "Lỗi server"));
     }
 });
+
+const getProductForyou = asyncHandler(async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = parseInt(req.query.skip) || 0;
+        const userId = req.query.userId;
+
+        let products = [];
+
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            const recommendation = await Recommendation.findOne({ customer_id: userId });
+
+            if (recommendation) {
+                const { keywords = [], brands = [], categories = [], price_range } = recommendation;
+
+                const recommendQuery = {
+                    status: "active",
+                    $or: []
+                };
+
+                if (keywords.length > 0) {
+                    recommendQuery.$or.push({
+                        name: { $regex: keywords.join('|'), $options: 'i' }
+                    });
+                }
+
+                if (brands.length > 0) {
+                    recommendQuery.$or.push({
+                        tags: { $in: brands }
+                    });
+                }
+
+                if (categories.length > 0) {
+                    const categoryObjectIds = categories
+                        .filter(id => mongoose.Types.ObjectId.isValid(id))
+                        .map(id => new mongoose.Types.ObjectId(id));
+
+                    if (categoryObjectIds.length > 0) {
+                        recommendQuery.$or.push({
+                            category_id: { $in: categoryObjectIds }
+                        });
+                    }
+                }
+
+                if (price_range && (price_range.min || price_range.max)) {
+                    const priceFilter = {};
+                    if (price_range.min) priceFilter.$gte = price_range.min;
+                    if (price_range.max) priceFilter.$lte = price_range.max;
+
+                    recommendQuery.$or.push({ price: priceFilter });
+                }
+
+                // Nếu có điều kiện trong $or thì query
+                if (recommendQuery.$or.length > 0) {
+                    products = await Product.find(recommendQuery)
+                        .sort({ quantitySold: -1 })
+                        .skip(skip)
+                        .limit(limit);
+                }
+            }
+        }
+
+        // Nếu không có sản phẩm từ recommend, fallback sang sản phẩm nổi bật
+        if (products.length === 0) {
+            products = await Product.find({
+                is_featured: true,
+                status: "active"
+            })
+                .sort({ quantitySold: -1 })
+                .skip(skip)
+                .limit(limit);
+        }
+
+        // Gắn review
+        const productsWithReviews = await calculateProductRatings(products);
+
+        res.status(200).json(formatResponse(true, productsWithReviews, "Lấy sản phẩm phù hợp thành công"));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(formatResponse(false, null, "Lỗi server"));
+    }
+});
+
 
 const getProductRelate = asyncHandler(async (req, res) => {
     try {
@@ -438,35 +466,8 @@ const getProductRelate = asyncHandler(async (req, res) => {
             .sort({ quantitySold: -1, averageRating: -1 })
             .skip(Number(skip))
             .limit(Number(limit));
-        const productIds = products.map(item => item._id)
-        const reviews = await Review.find({
-            product_id: { $in: productIds },
-            review_type: 'product_review'
-        });
-        console.log(reviews)
-        const reviewMap = {};
-        reviews.forEach(review => {
-            const pid = review.product_id.toString();
-            if (!reviewMap[pid]) reviewMap[pid] = [];
-            reviewMap[pid].push(review);
-        });
-        let productsWithRatings = products.map(product => {
-            const pid = product._id.toString();
-            const productReviews = reviewMap[pid] || [];
-            const totalReviews = productReviews.length;
-            let averageRating = 0;
 
-            if (totalReviews > 0) {
-                const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
-                averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
-            }
-
-            return {
-                ...product.toObject(),
-                average_rating: averageRating,
-                total_reviews: totalReviews
-            };
-        });
+        let productsWithRatings = await calculateProductRatings(products);
         res.status(200).json(formatResponse(true, productsWithRatings, "Lấy sản phẩm liên quan thành công"));
     } catch (err) {
         console.error(err);
@@ -535,7 +536,6 @@ const getStoreById = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Không tìm thấy cửa hàng');
     }
-    console.log("checkin")
     const totalProduct = await Product.countDocuments({ store_id: store._id, status: 'active' });
 
     const shopReviews = await Review.find({ store_id: store._id, review_type: 'shop_review' });
@@ -568,5 +568,6 @@ module.exports = {
         getProductNew,
         getStoreById,
         getProductRelate,
+        getProductForyou
     }
 };

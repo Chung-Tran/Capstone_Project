@@ -11,6 +11,8 @@ import customerItemsService from '../services/customerItems.service';
 import { useDispatch } from 'react-redux';
 import { incrementCartCount, incrementWishlistCount } from '../store/slices/authSlice';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import create_logger from '../config/logger';
+import { log_action_type } from '../common/Constant';
 
 const ProductCard = ({ product }) => {
     const discount = product.discount || Math.floor(Math.random() * 30);
@@ -40,7 +42,7 @@ const ProductCard = ({ product }) => {
             } else {
                 dispatch(incrementWishlistCount(product._id));
             }
-            showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+            showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào sản phẩm yêu thích');
         } catch (error) {
             console.log(error);
             showToast.error(error.message || 'Đã xảy ra lỗi');
@@ -156,9 +158,9 @@ const FeaturedNewProduct = ({ product }) => {
                     <div className="flex items-center mb-2">
                         <div className="flex items-center text-yellow-400 mr-2">
                             <Star size={16} fill="currentColor" />
-                            <span className="ml-1 text-sm font-medium text-gray-700">{product.rating || (Math.random() * 2 + 3).toFixed(1)}</span>
+                            <span className="ml-1 text-sm font-medium text-gray-700">{product.average_rating || (Math.random() * 2 + 3).toFixed(1)}</span>
                         </div>
-                        <span className="text-sm text-gray-500">• {Math.floor(Math.random() * 200) + 50} đánh giá</span>
+                        <span className="text-sm text-gray-500">• {product.total_reviews} đánh giá</span>
                     </div>
 
                     <div dangerouslySetInnerHTML={{ __html: product.description }} ></div>

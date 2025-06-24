@@ -9,7 +9,7 @@ import { Rating } from 'react-simple-star-rating';
 import { formatCurrency } from '../common/methodsCommon';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLoading } from '../utils/useLoading';
-import { price_range_filter, sortOptions } from '../common/Constant';
+import { log_action_type, price_range_filter, sortOptions } from '../common/Constant';
 import { useSelector } from 'react-redux';
 import create_logger from '../config/logger';
 
@@ -151,6 +151,12 @@ const SearchProductPage = () => {
     const handleSearch = () => {
         if (searchQuery?.trim()) {
             navigate(`/tim-kiem?keyword=${encodeURIComponent(searchQuery.trim())}`);
+            create_logger({
+                customer_id: localStorage.getItem('customer_id'),
+                action_type: log_action_type.SEARCH,
+                product_id: null,
+                keyword: searchQuery,
+            })
         }
     };
 
@@ -185,6 +191,14 @@ const SearchProductPage = () => {
         } else {
             setSelectedPriceRange([]);
         }
+        create_logger({
+            customer_id: localStorage.getItem('customer_id'),
+            action_type: log_action_type.FILTER,
+            keyword: searchQuery,
+            categories: tempSelectedCategories,
+            ratings: tempSelectedRatings,
+            priceRange: tempSelectedPriceRange,
+        });
     };
 
     // Fetch products when filters change

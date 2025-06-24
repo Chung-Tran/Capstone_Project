@@ -7,9 +7,23 @@ const userActionSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    store_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+    },
     action_type: {
         type: String,
-        enum: ['view', 'click', 'cart', 'purchase', 'like', 'wishlist', 'search'],
+        enum: [
+            'view_product',
+            'search',
+            'click_product',
+            'view_shop',
+            'add_to_cart',
+            'purchase',
+            'add_to_wishlist',
+            'filter',
+            'comment',
+        ],
         required: true,
         index: true
     },
@@ -23,12 +37,12 @@ const userActionSchema = new mongoose.Schema({
         type: String,
         default: null
     },
-    keyword: string,
-    meta: {
-        type: mongoose.Schema.Types.Mixed,
-        default: {}
-        // ví dụ: { source: 'home', device: 'mobile', duration: 4.2 }
-    }
+    priceRange: {
+        type: String,
+        default: null
+    },
+    keyword: String,
+    description: String,
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });

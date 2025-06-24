@@ -81,6 +81,18 @@ const shopService = {
             throw handleError(error);
         }
     },
+
+    get_all_categories: async () => {
+        try {
+            const response = await axiosClient.get(`/categories`);
+            const result = handleResponse(response);
+
+            return result;
+        } catch (error) {
+            console.error(`Error fetching store id:`, error);
+            throw handleError(error);
+        }
+    },
 };
 
 export default shopService;

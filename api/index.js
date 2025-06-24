@@ -10,6 +10,7 @@ const cloudinary = require('cloudinary').v2;
 const dotenv = require('dotenv');
 const routes = require('./routes/index');
 const SocketHandler = require("./socket/socketHandler");
+const startCronJobs = require("./cron");
 dotenv.config();
 // Tạo server http
 const server = http.createServer(app);
@@ -45,6 +46,8 @@ app.use('/api', routes);
 
 // Error handling middleware
 app.use(errorHandler);
+
+startCronJobs();
 
 // Start server
 const PORT = process.env.PORT;

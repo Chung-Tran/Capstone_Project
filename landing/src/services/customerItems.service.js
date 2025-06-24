@@ -1,3 +1,4 @@
+import { log_action_type } from "../common/Constant";
 import { handleError, handleResponse } from "../common/methodsCommon";
 import axiosClient from "../config/axios";
 import create_logger from "../config/logger";
@@ -8,7 +9,7 @@ const customerItemsService = {
             const response = await axiosClient.post('/customer-items', itemInfo);
             create_logger({
                 customer_id: localStorage.getItem('customer_id'),
-                action_type: itemInfo?.type == 'cart' ? 'cart' : 'wishlist',
+                action_type: itemInfo?.type == 'cart' ? log_action_type.ADD_TO_CART : log_action_type.ADD_TO_WISHLIST,
                 product_id: itemInfo.product_id,
             })
             return handleResponse(response);
@@ -37,7 +38,7 @@ const customerItemsService = {
             const response = await axiosClient.post('/customer-items', itemInfo);
             create_logger({
                 customer_id: localStorage.getItem('customer_id'),
-                action_type: itemInfo?.type == 'cart' ? 'cart' : 'wishlist',
+                action_type: log_action_type.ADD_TO_CART,
                 product_id: itemInfo.product_id,
                 // keywords: product?.keywords,
             })

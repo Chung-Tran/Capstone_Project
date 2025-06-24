@@ -6,6 +6,7 @@ import { useLoading } from '../utils/useLoading';
 import { useDispatch } from 'react-redux';
 import { decrementCartCount, decrementWishlistCount, incrementCartCount } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
+import create_logger from '../config/logger';
 
 export default function Wishlist() {
     const navigate = useNavigate()
@@ -50,7 +51,8 @@ export default function Wishlist() {
                 product_id: item.product_id._id,
                 quantity: 1,
                 type: 'cart'
-            });
+            }); 
+
             removeFromWishlist(item._id);
 
             dispatch(incrementCartCount())
@@ -69,12 +71,14 @@ export default function Wishlist() {
         try {
             setLoading(true)
             await Promise.all(
-                availableItems.map(item =>
+                availableItems.map(item => {
                     customerItemsService.addToCart({
                         product_id: item.product_id._id,
                         quantity: 1,
                         type: 'cart'
-                    })
+                    });
+                }
+
                 )
             );
             // Cập nhật danh sách wishlist

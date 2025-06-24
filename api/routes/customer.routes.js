@@ -16,18 +16,11 @@ router.post('/register', multiUpload, CustomerController.registerCustomer);
 router.post('/login', CustomerController.loginCustomer);
 router.post('/store', authMiddleware, CustomerController.registerStore);
 
-// Follow a shop
-router.post('/shop/:shopId/follow', authMiddleware, CustomerController.followShop);
-
-// Unfollow a shop
-router.delete('/shop/:shopId/follow', authMiddleware, CustomerController.unfollowShop);
-
 router.get('/profile/:id', authMiddleware, CustomerController.getCustomerProfile);
 router.get('/shop-info', authMiddleware, CustomerController.getShopInfo);
 router.get('/account-info', authMiddleware, CustomerController.getAccountInfo);
 
 router.put('/shop', authMiddleware, multiUpload, CustomerController.updateShopInfo);
-router.put('/save-voucher', authMiddleware, CustomerController.saveVoucher);
 router.put('/:id', authMiddleware, multiUpload, CustomerController.updateCustomerProfile);
 
 router.patch('/update-password', authMiddleware, CustomerController.updatePassword);

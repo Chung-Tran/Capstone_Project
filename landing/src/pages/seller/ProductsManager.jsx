@@ -180,10 +180,6 @@ const ProductsManager = () => {
                         src={product.main_image || "/placeholder-product.png"}
                         alt={product.name}
                         className="w-16 h-16 object-cover rounded-lg mr-3"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "/placeholder-product.png";
-                        }}
                       />
                     </div>
                   </td>

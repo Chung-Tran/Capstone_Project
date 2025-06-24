@@ -3,34 +3,39 @@ import { Modal, Upload, Input, Button } from "antd";
 import { useState } from "react";
 import { Rating } from "react-simple-star-rating";
 import { UploadOutlined } from "@ant-design/icons";
+import { showToast } from "../utils/toast";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 
 export default function ReviewModal({ visible, onClose, onSubmit }) {
     const [rating, setRating] = useState(0);
     const [content, setContent] = useState("");
     const [fileList, setFileList] = useState([]);
-
+    const requireAuth = useRequireAuth();
     const handleUploadChange = ({ fileList: newFileList }) => {
         setFileList(newFileList);
     };
 
     const handleOk = () => {
-        if (!rating || !content.trim()) return;
+        if (!rating || !content.trim())
+            return showToast.error("Vui lòng điền đầy đủ nội dung và số sao đánh giá")
+        requireAuth(async () => {
+            const formData = new FormData();
+            formData.append("content", content);
+            formData.append("rating", rating);
 
-        const formData = new FormData();
-        formData.append("content", content);
-        formData.append("rating", rating);
+            fileList.forEach(file => {
+                formData.append("images", file.originFileObj); // Gửi nhiều ảnh (field images[])
+            });
 
-        fileList.forEach(file => {
-            formData.append("images", file.originFileObj); // Gửi nhiều ảnh (field images[])
+            onSubmit(formData);
+            onClose();
+
+            // Reset form
+            setRating(0);
+            setContent("");
+            setFileList([]);
         });
 
-        onSubmit(formData);
-        onClose();
-
-        // Reset form
-        setRating(0);
-        setContent("");
-        setFileList([]);
     };
 
     return (

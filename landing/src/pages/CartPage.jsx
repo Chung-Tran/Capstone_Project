@@ -6,10 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useLoading } from '../utils/useLoading';
 import { usePaymentPolling } from '../utils/paymentPoling';
 import { showToast } from '../utils/toast';
-import { set } from 'lodash';
+import { forEach, set } from 'lodash';
 import PaymentResult from '../components/payment/PaymentResult';
 import { useDispatch } from 'react-redux';
 import { decrementCartCount } from '../store/slices/authSlice';
+import create_logger from '../config/logger';
+import { log_action_type } from '../common/Constant';
 
 // Shop Items Component (optimized)
 const ShopItems = ({ shop, shopId, updateQuantity, removeItem, formatPrice, calculateShopSubtotal }) => {
@@ -267,7 +269,6 @@ export default function ShoppingCart() {
         try {
             if (!receiverName || !receiverPhone || !address)
                 return showToast.error("Vui lòng nhập đầy đủ thông tin giao hàng");
-
             setLoading(true);
             const orderData = {
                 // cartItems: cartByShop, //data da group theo shop
@@ -290,6 +291,14 @@ export default function ShoppingCart() {
 
             const response = await orderService.create_order(orderData);
             if (response.isSuccess) {
+                orderData.items.forEach((item) => {
+                    create_logger({
+                        customer_id: localStorage.getItem('customer_id'),
+                        action_type: log_action_type.PURCHASE,
+                        productId: item,
+
+                    })
+                });
                 dispatch(decrementCartCount(1000))
                 if (paymentMethod === 'online') {
                     const paymentData = {
@@ -340,7 +349,7 @@ export default function ShoppingCart() {
                                 <h2 className="text-xl font-semibold text-gray-800">
                                     Sản phẩm ({getTotalItemCount()})
                                 </h2>
-                                <button className="flex items-center text-indigo-600 hover:text-indigo-800 transition">
+                                <button className="flex items-center text-indigo-600 hover:text-indigo-800 transition" onClick={() => navigate('/')}>
                                     <ChevronLeft size={16} className="mr-1" />
                                     <span>Tiếp tục mua sắm</span>
                                 </button>
@@ -420,7 +429,6 @@ export default function ShoppingCart() {
                                 >
                                     <option value="cod">Thanh toán khi nhận hàng</option>
                                     <option value="online">Thanh toán trực tuyến</option>
-                                    <option value="deposit">Thanh toán trước 1 khoản</option>
                                 </select>
                             </div>
 

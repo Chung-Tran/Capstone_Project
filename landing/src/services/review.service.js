@@ -33,29 +33,29 @@ const reviewService = {
         }
     },
     reply_product_review: async (reviewId, content) => {
-      try {
-          if (!reviewId || !content) {
-              throw new Error('reviewId và content không được để trống');
-          }
-          console.log(`Replying to review ${reviewId} with content:`, content);
-          const response = await axiosClient.post(`/reviews/${reviewId}/reply`, { content }, {
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-          });
-          console.log('Reply response:', response.data);
-          const processedResponse = handleResponse(response);
-          if (!processedResponse.success) {
-              throw new Error(processedResponse.message || 'Phản hồi thất bại');
-          }
-          return processedResponse;
-      } catch (error) {
-          console.error('Reply error:', error);
-          const errorInfo = handleError(error);
-          console.log('Error info:', errorInfo);
-          throw Object.assign(new Error(errorInfo.message || 'Không thể gửi phản hồi'), { status: errorInfo.status });
-      }
-  },
+        try {
+            if (!reviewId || !content) {
+                throw new Error('reviewId và content không được để trống');
+            }
+            console.log(`Replying to review ${reviewId} with content:`, content);
+            const response = await axiosClient.post(`/reviews/${reviewId}/reply`, { content }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            console.log('Reply response:', response.data);
+            const processedResponse = handleResponse(response);
+            if (!processedResponse.success) {
+                throw new Error(processedResponse.message || 'Phản hồi thất bại');
+            }
+            return processedResponse;
+        } catch (error) {
+            console.error('Reply error:', error);
+            const errorInfo = handleError(error);
+            console.log('Error info:', errorInfo);
+            throw Object.assign(new Error(errorInfo.message || 'Không thể gửi phản hồi'), { status: errorInfo.status });
+        }
+    },
     getProductListAndReviewsByStoreId: async (storeId, { limit, skip }) => {
         try {
             const response = await axiosClient.get(`reviews/store/${storeId}/products`, {
@@ -65,6 +65,17 @@ const reviewService = {
         } catch (error) {
             const errorInfo = handleError(error);
             throw new Error(errorInfo.message || 'Không thể lấy danh sách sản phẩm và đánh giá');
+        }
+    },
+    getProductListAndReviewsByIds: async (reviewIds) => {
+        try {
+            const response = await axiosClient.post('/reviews/by-ids', {
+                review_ids: reviewIds
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching reviews by IDs:', error);
+            throw error;
         }
     },
 };

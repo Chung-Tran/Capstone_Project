@@ -4,6 +4,7 @@ const Product = require('../models/product.model');
 const Store = require('../models/store.model');
 const CustomerItems = require('../models/customerItems.model');
 const Notification = require('../models/notification.model');
+const Category = require('../models/category.model');
 const formatResponse = require('../middlewares/responseFormat');
 const { createOTP, verifyOTP } = require('../services/otpService');
 const { sendOTPEmail } = require('../services/emailService');
@@ -11,6 +12,8 @@ const { generateToken } = require('../services/jwtService');
 const { uploadImage } = require('../services/uploadService');
 const upload = require('../middlewares/uploadMiddleware');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+const { isValidObjectId, Types } = require('mongoose');
 
 const sendRegistrationOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -40,6 +43,7 @@ const registerCustomer = asyncHandler(async (req, res) => {
 
     // Verify OTP
     const isOTPValid = await verifyOTP(email, otp, 'email');
+    console.log('OTP verification result:', isOTPValid, email, otp,);
     if (!isOTPValid) {
         res.status(400);
         throw new Error('OTP không hợp lệ hoặc hết hạn');
@@ -132,7 +136,9 @@ const registerCustomer = asyncHandler(async (req, res) => {
 
 const loginCustomer = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
-    const customer = await Customer.findOne({ email: username });
+    const customer = await Customer.findOne({
+        $or: [{ email: username }, { username: username }]
+    });
     if (!customer) {
         res.status(400);
         throw new Error('Invalid email or password');
@@ -236,6 +242,10 @@ const updateCustomerProfile = asyncHandler(async (req, res) => {
 const getShopInfo = asyncHandler(async (req, res) => {
     const user = req.user;
     const shop = await Store.findOne({ owner_id: user._id });
+    const businessField = shop.business_field.filter(field => Types.ObjectId.isValid(field)).map(field => new mongoose.Types.ObjectId(field));
+
+    const Cate = await Category.find({ _id: { $in: businessField } }, 'name').lean();
+    shop.business_field = Cate;
     if (!shop) {
         res.status(404);
         throw new Error('Shop not found');
@@ -243,7 +253,7 @@ const getShopInfo = asyncHandler(async (req, res) => {
     const product = await Product.find({ store_id: shop._id });
     const response = {
         shopInfo: shop,
-        productInfo: product
+        productInfo: product,
     }
     res.json(formatResponse(true, response, 'Shop info retrieved successfully'));
 });
@@ -361,110 +371,6 @@ const updatePassword = asyncHandler(async (req, res) => {
     res.json(formatResponse(true, {}, 'Đổi mật khẩu thành công!'));
 });
 
-const saveVoucher = asyncHandler(async (req, res) => {
-    const { voucherId } = req.body;
-    const customer = await Customer.findById(req.user._id);
-    if (!customer) {
-        res.status(404);
-        throw new Error('Customer not found');
-    }
-
-    if (customer.voucher_saved.includes(voucherId)) {
-        res.status(400);
-        throw new Error('Voucher already saved');
-    }
-
-    customer.voucher_saved.push(voucherId);
-    await customer.save();
-
-    res.json(formatResponse(true, {}, 'Voucher saved successfully'));
-});
-
-const followShop = asyncHandler(async (req, res) => {
-    const { shopId } = req.params;
-    const user = req.user;
-
-    // Validate shop exists
-    const shop = await Store.findById(shopId);
-    if (!shop) {
-        res.status(404);
-        throw new Error('Shop not found');
-    }
-
-    // Fetch customer and ensure followed_shops is initialized
-    const customer = await Customer.findById(user._id);
-    if (!customer) {
-        res.status(404);
-        throw new Error('Customer not found');
-    }
-
-    // Initialize followed_shops if undefined
-    if (!customer.followed_shops) {
-        customer.followed_shops = [];
-    }
-
-    // Check if already following
-    if (customer.followed_shops.includes(shopId)) {
-        res.status(400);
-        throw new Error('You are already following this shop');
-    }
-
-    // Update customer's followed shops
-    customer.followed_shops.push(shopId);
-    await customer.save();
-
-    // Update shop's follower count
-    await Store.findByIdAndUpdate(
-        shopId,
-        { $inc: { follower_count: 1 } },
-        { new: true }
-    );
-
-    res.json(formatResponse(true, {}, 'Successfully followed shop'));
-});
-
-const unfollowShop = asyncHandler(async (req, res) => {
-    const { shopId } = req.params;
-    const user = req.user;
-
-    // Validate shop exists
-    const shop = await Store.findById(shopId);
-    if (!shop) {
-        res.status(404);
-        throw new Error('Shop not found');
-    }
-
-    // Fetch customer and ensure followed_shops is initialized
-    const customer = await Customer.findById(user._id);
-    if (!customer) {
-        res.status(404);
-        throw new Error('Customer not found');
-    }
-
-    // Initialize followed_shops if undefined
-    if (!customer.followed_shops) {
-        customer.followed_shops = [];
-    }
-
-    // Check if not following
-    if (!customer.followed_shops.includes(shopId)) {
-        res.status(400);
-        throw new Error('You are not following this shop');
-    }
-
-    // Remove shop from customer's followed shops
-    customer.followed_shops = customer.followed_shops.filter(id => id.toString() !== shopId);
-    await customer.save();
-
-    // Decrease shop's follower count
-    await Store.findByIdAndUpdate(
-        shopId,
-        { $inc: { follower_count: -1 } },
-        { new: true }
-    );
-
-    res.json(formatResponse(true, {}, 'Successfully unfollowed shop'));
-});
 
 module.exports = {
     CustomerController: {
@@ -478,8 +384,5 @@ module.exports = {
         updateShopInfo,
         getAccountInfo,
         updatePassword,
-        saveVoucher,
-        followShop,
-        unfollowShop
     }
 };

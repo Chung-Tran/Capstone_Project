@@ -69,6 +69,21 @@ const productService = {
             throw new Error(errorInfo.message);
         }
     },
+    product_for_you: async (limit, skip, userId) => {
+        try {
+            const response = await axiosClient.get(`/products/for-you`, {
+                params: {
+                    limit: limit,
+                    skip: skip,
+                    userId: userId,
+                }
+            });
+            return handleResponse(response);
+        } catch (error) {
+            const errorInfo = handleError(error);
+            throw new Error(errorInfo.message);
+        }
+    },
     product_news: async (limit, skip) => {
         try {
             const response = await axiosClient.get(`/products/new`, {

@@ -1,5 +1,6 @@
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
+const Messenger = require('../models/messenger.model');
 
 class SocketHandler {
     constructor(server) {
@@ -12,14 +13,11 @@ class SocketHandler {
             pingInterval: 25000
         });
 
-        this.users = new Map(); // Store connected users
-        this.rooms = new Map(); // Store room information
-
+        this.users = new Map(); // userId -> { socketId, role }
         this.setupMiddleware();
         this.setupEventHandlers();
     }
 
-    // Middleware for authentication
     setupMiddleware() {
         this.io.use((socket, next) => {
             try {
@@ -27,7 +25,7 @@ class SocketHandler {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 socket.userId = decoded.id;
                 socket.role = decoded.role;
-                socket.email = decoded.email;
+                socket.username = decoded.username;
                 next();
             } catch (err) {
                 next(new Error('Authentication error'));
@@ -38,91 +36,71 @@ class SocketHandler {
     setupEventHandlers() {
         this.io.on('connection', (socket) => {
             console.log(`User ${socket.userId} connected`);
-
-            // Store user info
             this.users.set(socket.userId, {
                 socketId: socket.id,
-                username: socket.username,
-                status: 'online'
+                role: socket.role
             });
 
-            // Handle user joining room
-            socket.on('join_room', (roomId) => {
+            // Khách hoặc shop join vào room (theo conversation)
+            socket.on('join_conversation', ({ conversationId }) => {
+                const roomId = `conversation_${conversationId}`;
                 socket.join(roomId);
                 socket.currentRoom = roomId;
-
-                // Update room info
-                if (!this.rooms.has(roomId)) {
-                    this.rooms.set(roomId, new Set());
-                }
-                this.rooms.get(roomId).add(socket.userId);
-
-                // Notify others in room
-                socket.to(roomId).emit('user_joined', {
-                    userId: socket.userId,
-                    username: socket.username
-                });
-
-                // Send room users list
-                const roomUsers = Array.from(this.rooms.get(roomId)).map(userId =>
-                    this.users.get(userId)
-                ).filter(Boolean);
-
-                socket.emit('room_users', roomUsers);
+                console.log(`${socket.userId} joined room ${roomId}`);
             });
 
-            // Handle sending message
-            socket.on('send_message', (data) => {
+            // Gửi tin nhắn
+            socket.on('send_message', async (data) => {
+                const { conversationId, receiverId, content } = data;
+                const roomId = `conversation_${conversationId}`;
 
-                console.log("Data nhận", data.content)
                 const messageData = {
-                    id: Date.now().toString(),
-                    content: data.content,
-                    senderId: socket.userId,
-                    senderName: socket.username,
-                    timestamp: new Date().toISOString(),
-                    roomId: data.roomId
+                    conversation_id: conversationId,
+                    sender_id: socket.userId,
+                    receiver_id: receiverId,
+                    content,
+                    is_read: false,
+                    created_at: new Date()
                 };
 
-                // Broadcast to room including sender
-                this.io.to(data.roomId).emit('receive_message', messageData);
+                try {
+                    // Lưu vào DB
+                    const saved = await Messenger.create(messageData);
 
-                // Here you can save to database
-                // await saveMessage(messageData);
+                    // Emit cho tất cả người trong phòng
+                    this.io.to(roomId).emit('receive_message', {
+                        ...messageData,
+                        _id: saved._id
+                    });
+
+                    console.log(`Message sent in ${roomId}:`, content);
+                } catch (err) {
+                    console.error('Error saving message:', err);
+                }
             });
 
-            // Handle disconnect
-            socket.on('disconnect', () => {
-                console.log(`User ${socket.username} disconnected`);
-
-                // Remove from current room
-                if (socket.currentRoom && this.rooms.has(socket.currentRoom)) {
-                    this.rooms.get(socket.currentRoom).delete(socket.userId);
-                    socket.to(socket.currentRoom).emit('user_left', {
-                        userId: socket.userId,
-                        username: socket.username
-                    });
+            // Đánh dấu đã đọc
+            socket.on('mark_as_read', async ({ conversationId, readerId }) => {
+                try {
+                    await Messenger.updateMany(
+                        {
+                            conversation_id: conversationId,
+                            receiver_id: readerId,
+                            is_read: false
+                        },
+                        { $set: { is_read: true } }
+                    );
+                    console.log(`Marked messages as read in conversation ${conversationId}`);
+                } catch (err) {
+                    console.error('Error marking messages as read:', err);
                 }
+            });
 
-                // Remove user
+            socket.on('disconnect', () => {
+                console.log(`User ${socket.userId} disconnected`);
                 this.users.delete(socket.userId);
             });
         });
-    }
-
-    // Helper methods
-    getUsersInRoom(roomId) {
-        if (!this.rooms.has(roomId)) return [];
-        return Array.from(this.rooms.get(roomId)).map(userId =>
-            this.users.get(userId)
-        ).filter(Boolean);
-    }
-
-    sendToUser(userId, event, data) {
-        const user = this.users.get(userId);
-        if (user) {
-            this.io.to(user.socketId).emit(event, data);
-        }
     }
 }
 

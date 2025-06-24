@@ -106,4 +106,66 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.put('/', async (req, res) => {
+    try {
+        const { productId, newSteps } = req.body;
+
+        if (!productId || !newSteps) {
+            return res.status(400).json(formatResponse(false, null, "Missing productId or newSteps"));
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json(formatResponse(false, null, "Product not found"));
+        }
+
+        /** 1. Lấy current CID từ blockchain */
+        const currentCid = await getCIDFromBlockchain(productId);
+        if (!currentCid) {
+            return res.status(404).json(formatResponse(false, null, "No trace found for productId"));
+        }
+
+        /** 2. Fetch JSON từ IPFS */
+        const currentData = await fetchJSONFromIPFS(currentCid);
+
+        /** 3. Thêm step mới vào supplyChainSteps */
+        if (!Array.isArray(currentData.supplyChainSteps)) {
+            currentData.supplyChainSteps = [];
+        }
+
+        currentData.supplyChainSteps.push(...newSteps);
+        currentData.timestamp = new Date().toISOString();
+
+        /** 4. Upload JSON mới lên IPFS */
+        const newCid = await uploadJsonToIPFS(currentData);
+
+        /** 5. Gọi smart contract để cập nhật CID */
+        const tx = await contract.updateProductCid(productId, newCid);
+        const receipt = await tx.wait();
+
+        /** 6. Cập nhật lịch sử local DB */
+        product.traceHistories.push({
+            cid: newCid,
+            blockNumber: receipt.blockNumber
+        });
+        await product.save();
+
+        /** 7. Trả kết quả */
+        return res.json(formatResponse(
+            true,
+            {
+                success: true,
+                cid: newCid,
+                txHash: receipt.transactionHash,
+                blockNumber: receipt.blockNumber
+            },
+            "Updated trace successfully"
+        ));
+
+    } catch (err) {
+        console.error('Update trace error:', err);
+        return res.status(500).json(formatResponse(false, null, "Internal server error: " + err.message));
+    }
+});
+
 module.exports = router;

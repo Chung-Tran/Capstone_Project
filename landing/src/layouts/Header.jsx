@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Search, User, Bell, Heart, ChevronDown, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, User, Bell, Heart, ChevronDown, Menu, X, MessageCircleIcon } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
@@ -119,7 +119,7 @@ const Header = () => {
 
                                 {isCategoryOpen && (
                                     <div className="absolute top-full left-0 w-48 bg-white shadow-lg rounded-lg py-2 mt-2">
-                                        {categories.map((category, index) => (
+                                        {categories?.slice(0, 15)?.map((category, index) => (
                                             <Link
                                                 key={index}
                                                 to={`/danh-muc/${category._id}`}
@@ -161,7 +161,15 @@ const Header = () => {
                         </div>
 
                         {/* Action Icons */}
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3">
+
+                            {isAuthenticated && (
+                                <Link to="/tin-nhan" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-full">
+                                    <MessageCircleIcon size={20} />
+
+                                </Link>
+                            )}
+
                             {/* Notifications */}
                             {isAuthenticated && (
                                 <div className="relative hidden lg:block" ref={notificationRef}>
