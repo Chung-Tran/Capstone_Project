@@ -14,6 +14,16 @@ const abi = [
     },
     {
         "inputs": [
+            { "internalType": "string", "name": "productId", "type": "string" },
+            { "internalType": "string", "name": "newCid", "type": "string" }
+        ],
+        "name": "updateProductCid",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
             { "internalType": "string", "name": "productId", "type": "string" }
         ],
         "name": "getProductTrace",
@@ -33,7 +43,8 @@ const abi = [
     }
 ];
 
-const provider = new ethers.JsonRpcProvider("string");
-const wallet = new ethers.Wallet("string", provider);
-const contract = new ethers.Contract("string", abi, wallet);
+const provider = new ethers.JsonRpcProvider(process.env.ETHEREUM_RPC_URL);
+const wallet = new ethers.Wallet(process.env.ETHEREUM_PRIVATE_KEY, provider);
+const contract = new ethers.Contract(process.env.ETHEREUM_CONTRACT_ADDRESS, abi, wallet);
+
 module.exports = contract;

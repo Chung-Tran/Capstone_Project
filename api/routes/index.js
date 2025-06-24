@@ -12,6 +12,7 @@ const customerItemsRoutes = require('./customerItems.routes');
 const paymentRoutes = require('./payment.routes');
 const providerRoutes = require('./provider.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const messengerRoutes = require('./messenger.routes.js');
 
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
@@ -24,5 +25,6 @@ router.use('/customer-items', customerItemsRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/traceability', providerRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/messenger', messengerRoutes);
 
 module.exports = router;

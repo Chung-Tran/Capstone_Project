@@ -8,6 +8,8 @@ import { formatCurrency } from '../common/methodsCommon';
 import customerItemsService from '../services/customerItems.service';
 import { useDispatch } from 'react-redux';
 import { incrementCartCount } from '../store/slices/authSlice';
+import create_logger from '../config/logger';
+import { log_action_type } from '../common/Constant';
 
 export default function StorePage() {
     const { id: shopId } = useParams();
@@ -47,6 +49,11 @@ export default function StorePage() {
                     ];
                     setCategories(shopCategories);
                 }
+                create_logger({
+                    customer_id: localStorage.getItem('customer_id'),
+                    action_type: log_action_type.VIEW_SHOP,
+                    store_id: shopId
+                })
             } else {
                 showToast.error('Không thể tải thông tin cửa hàng');
             }
@@ -164,7 +171,7 @@ export default function StorePage() {
         <div className="bg-gray-50 min-h-screen">
             <div className="relative rounded-xl overflow-hidden mb-8">
                 <img
-                    src={shopInfo.banner || '/api/placeholder/1200/300'}
+                    src={shopInfo.store_banner || '/api/placeholder/1200/300'}
                     alt="Shop Banner"
                     className="w-full h-64 object-cover"
                 />
@@ -195,7 +202,7 @@ export default function StorePage() {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <h3 className="text-lg font-semibold mb-4">Thông tin cửa hàng</h3>
                         <div className="space-y-4">
-                            <p className="text-gray-700">{shopInfo.description || 'Chưa có mô tả'}</p>
+                            <p className="text-gray-700">{shopInfo.store_description || 'Chưa có mô tả'}</p>
                             <div className="flex items-start">
                                 <div className="text-gray-500 mr-2 mt-1">📍</div>
                                 <p className="text-gray-700">{shopInfo.address || 'Không có địa chỉ'}</p>
@@ -206,7 +213,7 @@ export default function StorePage() {
                             </div>
                             <div className="flex items-start">
                                 <div className="text-gray-500 mr-2 mt-1">📅</div>
-                                <p className="text-gray-700">Hoạt động từ năm {shopInfo.established_year || new Date().getFullYear()}</p>
+                                <p className="text-gray-700">Hoạt động từ năm {new Date(shopInfo.created_at).getFullYear()}</p>
                             </div>
                         </div>
                     </div>

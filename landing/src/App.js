@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import Layout from './layouts/Layout';
@@ -13,7 +13,7 @@ import ShopManagement from './pages/seller/ShopManagement';
 import ProductsManager from './pages/seller/ProductsManager';
 import Orders from './pages/seller/Orders';
 import Reviews from './pages/seller/Reviews';
-import Messages from './pages/seller/Messages';
+import MessengerSeller from './pages/seller/MessengerSeller';
 import HomePage from './pages/HomePage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -33,6 +33,7 @@ import Wishlist from './pages/Wishlist';
 import StorePage from './pages/StorePage';
 import CategoryPage from './pages/CategoryPage';
 import { SocketProvider } from './contexts/SocketContext';
+import MessengerCustomer from './pages/MessengerCustomer';
 
 // Kiểm tra và chuyển hướng seller
 const CheckSellerAccess = ({ children }) => {
@@ -76,6 +77,10 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const MessengerWrapper = () => {
+  const { messageId } = useParams();
+  return <MessengerCustomer messageId={messageId} />;
+};
 
 const AppRoutes = () => {
   return (
@@ -94,7 +99,7 @@ const AppRoutes = () => {
             <Route path="products" element={<ProductsManager />} />
             <Route path="orders" element={<Orders />} />
             <Route path="reviews" element={<Reviews />} />
-            <Route path="messages" element={<Messages />} />
+            <Route path="messages" element={<MessengerSeller />} />
 
 
             {/* <Route path="analytics" element={<Analytics />} /> */}
@@ -115,7 +120,9 @@ const AppRoutes = () => {
               <Route path="/tim-kiem" element={<SearchProductPage />} />
               <Route path="/gio-hang" element={<ShoppingCart />} />
               <Route path="/san-pham-yeu-thich" element={<Wishlist />} />
+              <Route path="/san-pham-yeu-thich" element={<Wishlist />} />
               <Route path="/store/:id" element={<StorePage />} />
+              <Route path="/tin-nhan/:messageId?" element={<MessengerWrapper />} />
 
 
               <Route path="tai-khoan" element={<AccountLayout />}>

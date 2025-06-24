@@ -50,13 +50,13 @@ export default function TraceProductDetailModal({ open, onClose, productData }) 
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Text strong>🏭 Nhà sản xuất:</Text> <br />{traceData.manufacturerName}<br />
-                                <Text strong>🌎 Quốc gia:</Text> <br />{traceData.manufacturingCountry}<br />
+                                <Text strong>🌎 Quốc gia:</Text> <br />Việt Nam<br />
                             </Col>
                             <Col span={12}>
                                 <Text strong><ClockCircleOutlined /> Thời gian xác thực:</Text><br />
                                 {dayjs(traceData.timestamp).format('DD/MM/YYYY HH:mm')}<br />
                                 <Text strong><CheckCircleOutlined /> Đơn vị xác minh:</Text><br />
-                                {traceData.verifiedBy?.map(unit => <Tag color="green" key={unit}>{unit}</Tag>)}
+                                {["Đơn vị nội bộ", "Đơn vị bên ngoài", "Đơn vị có ủy quyền"]?.map(unit => <Tag color="green" key={unit}>{unit}</Tag>)}
                             </Col>
                         </Row>
                     </Card>

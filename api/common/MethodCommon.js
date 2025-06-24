@@ -1,3 +1,8 @@
+const Product = require('../models/product.model');
+const Review = require('../models/review.model');
+
+
+
 const formatResponse = (success, data, message, metadata = {}) => {
     return {
         success: success,
@@ -21,5 +26,39 @@ function generateSlug(name) {
         .replace(/\s+/g, '-') // Thay khoảng trắng bằng dấu gạch ngang
         .replace(/-+/g, '-'); // Gộp nhiều dấu gạch ngang thành một
 }
+const calculateProductRatings = async (products) => {
+    const productIds = products.map(p => p._id);
 
-module.exports = { formatResponse, generateSlug };
+    const reviews = await Review.find({
+        product_id: { $in: productIds },
+        review_type: 'product_review'
+    });
+
+    const reviewMap = {};
+    reviews.forEach(review => {
+        const pid = review.product_id.toString();
+        if (!reviewMap[pid]) reviewMap[pid] = [];
+        reviewMap[pid].push(review);
+    });
+
+    const productsWithRatings = products.map(product => {
+        const pid = product._id.toString();
+        const productReviews = reviewMap[pid] || [];
+        const totalReviews = productReviews.length;
+        let averageRating = 0;
+
+        if (totalReviews > 0) {
+            const sumRatings = productReviews.reduce((sum, r) => sum + r.rating, 0);
+            averageRating = parseFloat((sumRatings / totalReviews).toFixed(1));
+        }
+
+        return {
+            ...product.toObject(),
+            average_rating: averageRating,
+            total_reviews: totalReviews
+        };
+    });
+
+    return productsWithRatings;
+};
+module.exports = { formatResponse, generateSlug, calculateProductRatings };

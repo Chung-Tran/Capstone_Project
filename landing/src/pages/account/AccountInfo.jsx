@@ -114,7 +114,7 @@ function AccountInfo() {
 
                     </div>
                     <h2 className="text-xl font-semibold text-center">{userData.username}</h2>
-                    <p className="text-gray-500 text-center">Thành viên từ: 01/2023</p>
+                    <p className="text-gray-500 text-center">Thành viên từ: {new Date(userData.created_at).toLocaleDateString("en-US", { year: "numeric", month: "2-digit" })}</p>
 
                     {isEditing && (
                         <button
@@ -207,9 +207,8 @@ function AccountInfo() {
                                     disabled={!isEditing}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                 >
-                                    <option value="Nam">Nam</option>
-                                    <option value="Nữ">Nữ</option>
-                                    <option value="Khác">Khác</option>
+                                    <option value="male">Nam</option>
+                                    <option value="female">Nữ</option>
                                 </select>
                             </div>
 

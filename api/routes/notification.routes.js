@@ -4,8 +4,9 @@ const { NotificationController } = require('../controllers/notification.controll
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.post('/', authMiddleware, NotificationController.createNotification);
-router.get('/', authMiddleware, NotificationController.getCustomerNotifications);
 router.put('/:id/read', authMiddleware, NotificationController.markNotificationAsRead);
+router.get('/created-by-ai', authMiddleware, NotificationController.getNotificationCreatedByAI);
+router.get('/customer', authMiddleware, NotificationController.getCustomerNotifications);
 router.delete('/:id', authMiddleware, NotificationController.deleteNotification);
 
 module.exports = router; 

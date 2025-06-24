@@ -54,12 +54,24 @@ const Register = () => {
                         <CustomerRegisterForm
                             formData={formData}
                             onInputChange={handleInputChange}
+                            onSubmit={async (e) => {
+                                setFormData({});
+                                setTimeout(() => {
+                                    navigate('/login')
+                                }, 1000);
+                            }}
                         />
                     ) : (
                         <SellerRegisterForm
                             formData={formData}
                             onInputChange={handleInputChange}
                             onFileChange={handleFileChange}
+                            onSubmit={async (e) => {
+                                setFormData({});
+                                setTimeout(() => {
+                                    navigate('/login')
+                                }, 1000);
+                            }}
                         />
                     )}
 

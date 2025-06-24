@@ -7,8 +7,8 @@ const links = [
     { to: '/tai-khoan/lich-su-don-hang', label: 'Lịch sử đơn hàng', icon: ShoppingCart },
     { to: '/tai-khoan/doi-mat-khau', label: 'Đổi mật khẩu', icon: Lock },
     { to: '/tai-khoan/thong-bao', label: 'Thông báo', icon: Bell },
-    { to: '/tai-khoan/lich-su-giao-dich', label: 'Lịch sử giao dịch', icon: Bell },
-    { to: '/tai-khoan/lich-su-hoat-dong', label: 'Lịch sử hoạt động', icon: HistoryIcon },
+    // { to: '/tai-khoan/lich-su-giao-dich', label: 'Lịch sử giao dịch', icon: Bell },
+    // { to: '/tai-khoan/lich-su-hoat-dong', label: 'Lịch sử hoạt động', icon: HistoryIcon },
 ];
 const SidebarLink = ({ to, icon: Icon, label, isActive }) => {
     return (

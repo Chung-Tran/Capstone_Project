@@ -33,7 +33,7 @@ const ProductCard = ({ product, type = "default" }) => {
                 } else {
                     dispatch(incrementWishlistCount(product._id));
                 }
-                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào sản phẩm yêu thích');
             } catch (error) {
                 console.log(error)
                 showToast.error(error.message || 'Đã xảy ra lỗi');
@@ -120,17 +120,17 @@ function ForYouPage() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [resFeatured, resNew] = await Promise.all([
+                const [resFeatured, resForyou] = await Promise.all([
                     productService.product_featured(10, 0),
-                    productService.product_news(10, 0)
+                    productService.product_for_you(10, 0, localStorage.getItem('customer_id'))
                 ]);
 
-                if (!resFeatured.isSuccess || !resNew.isSuccess) {
+                if (!resFeatured.isSuccess || !resForyou.isSuccess) {
                     showToast.error("Lỗi lấy sản phẩm");
                 }
 
                 setTrendingProducts(resFeatured.data);
-                setRecommendedProducts(resNew.data);
+                setRecommendedProducts(resForyou.data);
 
 
             } catch (err) {

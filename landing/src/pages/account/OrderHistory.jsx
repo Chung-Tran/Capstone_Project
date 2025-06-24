@@ -22,7 +22,7 @@ const { Title, Text } = Typography;
 
 const PaymentStatusTag = ({ status }) => {
     const statusMap = {
-        pending: { text: 'Chờ xử lý', color: 'gold' },
+        pending: { text: 'Chưa thanh toán', color: 'gold' },
         success: { text: 'Thành công', color: 'green' },
         failed: { text: 'Thất bại', color: 'red' },
     };
@@ -115,6 +115,7 @@ const OrderHistory = () => {
             shipping: 'Đang giao',
             delivered: 'Đã giao',
             cancelled: 'Đã hủy',
+            rejected: 'Từ chối',
             shipped: 'Đang vận chuyển',
             done: 'Hoàn thành',
         };
@@ -141,14 +142,15 @@ const OrderHistory = () => {
         const grouped = {};
         items.forEach(item => {
             const storeId = item.product_id.store_id._id;
-            const storeName = item.product_id.store_id.address || 'Shop không xác định';
+            const storeName = item.product_id.store_id.store_name || 'Shop không xác định';
+            const storeAddress = item.product_id.store_id.address || 'Shop không xác định';
 
             if (!grouped[storeId]) {
                 grouped[storeId] = {
                     store: {
                         id: storeId,
                         name: storeName,
-                        address: item.product_id.store_id.address
+                        address: storeAddress
                     },
                     items: []
                 };
@@ -376,12 +378,9 @@ const OrderHistory = () => {
                         <div>
                             <Row justify="space-between" style={{ marginBottom: '8px' }}>
                                 <Text>Phí vận chuyển:</Text>
-                                <Text>{formatCurrency(selectedOrder.shipping_fee || 0)}</Text>
+                                <Text>{formatCurrency(0)}</Text>
                             </Row>
-                            <Row justify="space-between" style={{ marginBottom: '8px' }}>
-                                <Text>Thuế:</Text>
-                                <Text>{formatCurrency(selectedOrder.tax_amount || 0)}</Text>
-                            </Row>
+
                             <Divider style={{ margin: '12px 0' }} />
                             <Row justify="space-between">
                                 <Text strong style={{ fontSize: '16px' }}>Tổng cộng:</Text>

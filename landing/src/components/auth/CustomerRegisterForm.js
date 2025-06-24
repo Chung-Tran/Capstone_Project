@@ -71,7 +71,8 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
                 phone: formData.phone,
                 birthDate: formData.birthDate,
                 gender: formData.gender,
-                role: 'customer'
+                otp: formData.otp,
+                role: 'customer',
             };
 
             const response = await authService.customer_register(registrationData);
@@ -99,25 +100,6 @@ const CustomerRegisterForm = ({ formData, onInputChange, onSubmit }) => {
         } catch (error) {
             setErrors({ ...errors, email: error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại' });
             showToast.error(error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (!formData.otp?.trim()) {
-            setErrors({ ...errors, otp: 'Vui lòng nhập mã OTP' });
-            return;
-        }
-
-        try {
-            setIsLoading(true);
-            await authService.verify_otp(formData.email, formData.otp);
-            setErrors({ ...errors, otp: '' });
-            showToast.success('Xác thực OTP thành công');
-        } catch (error) {
-            setErrors({ ...errors, otp: 'Mã OTP không đúng hoặc đã hết hạn' });
-            showToast.error('Mã OTP không đúng hoặc đã hết hạn');
         } finally {
             setIsLoading(false);
         }

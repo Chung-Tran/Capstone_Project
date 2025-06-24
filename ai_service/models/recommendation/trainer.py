@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from surprise import Dataset, Reader, SVD
 import joblib
-from database.mongo import user_action_collection
+from database.mongo import user_action_collection, recommendation_collection, categories_collection
 
 MODEL_PATH = "models/recommendation/model.pkl"
 RATING_SCALE = (1, 10)

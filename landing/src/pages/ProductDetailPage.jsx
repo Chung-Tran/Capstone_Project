@@ -32,6 +32,7 @@ import customerItemsService from "../services/customerItems.service";
 import { useDispatch } from "react-redux";
 import BlockchainAuthModal from "../components/product/BlockchainAuthModal";
 import { useRequireAuth } from "../hooks/useRequireAuth";
+import { COLOR_OPTIONS, log_action_type } from "../common/Constant";
 
 const ProductDetailPage = () => {
   const { setLoading } = useLoading();
@@ -58,7 +59,7 @@ const ProductDetailPage = () => {
       ]);
       create_logger({
         customer_id: localStorage.getItem('customer_id'),
-        action_type: 'view',
+        action_type: log_action_type.CLICK_PRODUCT,
         product_id: id,
         keywords: product?.keywords,
       })
@@ -140,10 +141,16 @@ const ProductDetailPage = () => {
       setLoading(true);
       formData.append("product_id", id);
       formData.append("review_type", "product_review");
+      formData.append("store_id", store._id);
 
-      console.log(`Posting review for product id: ${id}`);
       const response = await reviewService.post_product_review(formData);
-
+      create_logger({
+        customer_id: localStorage.getItem('customer_id'),
+        action_type: log_action_type.COMMENT,
+        product_id: id,
+        description: formData.get("content"),
+        store_id: store._id
+      });
       if (response.isSuccess) {
         showToast.success("Đánh giá thành công");
         await fetchProductReviews(id, { limit: 5, skip: 0 });
@@ -160,7 +167,6 @@ const ProductDetailPage = () => {
 
   const handleViewShop = () => {
     if (store?._id) {
-      console.log(`Navigating to store id: ${store._id}`);
       navigate(`/store/${store._id}`);
     } else {
       showToast.error("Không tìm thấy thông tin shop");
@@ -174,12 +180,17 @@ const ProductDetailPage = () => {
       originalClass: "w-full h-full object-contain",
       thumbnailClass: "object-cover",
     })) || [];
+
   const moveItemToCart = async () => {
     requireAuth(async () => {
       try {
+        if (product.stock <= 0 || product.stock < quantity) {
+          showToast.error("Không đủ hàng trong kho để thêm vào giỏ hàng");
+          return;
+        }
         await customerItemsService.addToCart({
           product_id: product._id,
-          quantity: 1,
+          quantity: quantity,
           type: 'cart'
         });
 
@@ -287,28 +298,34 @@ const ProductDetailPage = () => {
             </div>
             {
               product.isTraceVerified &&
-              <BlockchainAuthModal />
+              <BlockchainAuthModal productId={product._id} isAuthenticated={product.isTraceVerified} />
             }
             <div className="mb-6">
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Màu sắc:
               </div>
-              {!!product?.colors && product?.colors?.length > 0 && (
+
+              {!!product?.colors?.length && (
                 <div className="flex flex-wrap gap-2">
-                  {product.colors?.map((color, index) => (
-                    <div
-                      key={index}
-                      className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
-                        ? "border-blue-600 bg-blue-50 text-blue-600"
-                        : "border-gray-300 hover:border-blue-300"
-                        }`}
-                    >
-                      {color}
-                    </div>
-                  ))}
+                  {product.colors.map((colorValue, index) => {
+                    const matchedOption = COLOR_OPTIONS.find(opt => opt.value === colorValue);
+
+                    return (
+                      <div
+                        key={colorValue}
+                        className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
+                          ? "border-blue-600 bg-blue-50 text-blue-600"
+                          : "border-gray-300 hover:border-blue-300"
+                          }`}
+                      >
+                        {matchedOption?.label || colorValue}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
+
             <div className="mb-6">
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Số lượng:
@@ -323,9 +340,10 @@ const ProductDetailPage = () => {
                 <input
                   type="number"
                   min="1"
+                  max={product.stock}
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-16 h-10 border-t border-b border-gray-300 text-center"
+                  className="w-16 h-10 border-t border-b border-gray-300 text-center outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   className="w-10 h-10 rounded-r-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100"
@@ -348,6 +366,22 @@ const ProductDetailPage = () => {
               {/* <button className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg shadow-sm transition-colors">
                 Mua ngay
               </button> */}
+            </div>
+
+            <div className="mt-4">
+              <a
+                href="https://zalo.me/your_zalo_id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 p-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg animate-bounce shadow-md transition"
+              >
+                <img
+                  src="/zalo-icon.png"
+                  alt="Zalo"
+                  className="w-6 h-6"
+                />
+                <span>Nhấn để chat Zalo - Tư vấn ngay</span>
+              </a>
             </div>
             <div className="grid grid-cols-3 gap-4 mt-6 border-t border-gray-200 pt-6">
               <div className="flex flex-col items-center text-center">

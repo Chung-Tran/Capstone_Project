@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
 import authService from '../../services/auth.service';
 import { showToast } from '../../utils/toast';
+import { useSelector } from 'react-redux';
+import Select from 'react-select';
 
-const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
+const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit }) => {
     const [errors, setErrors] = useState({});
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState([]);
-
+    const categories = useSelector((state) => state.common.categories) || [];
     // Business categories options
-    const businessCategories = [
-        { id: 'fashion', name: 'Thời trang' },
-        { id: 'electronics', name: 'Thiết bị điện tử' },
-        { id: 'home', name: 'Nhà cửa & Đời sống' },
-        { id: 'beauty', name: 'Làm đẹp' },
-        { id: 'food', name: 'Thực phẩm' },
-        { id: 'sports', name: 'Thể thao' },
-        { id: 'books', name: 'Sách & Văn phòng phẩm' },
-        { id: 'toys', name: 'Đồ chơi' },
-        { id: 'health', name: 'Sức khỏe' },
-        { id: 'other', name: 'Khác' }
-    ];
+    // const businessCategories = [
+    //     { id: 'fashion', name: 'Thời trang' },
+    //     { id: 'electronics', name: 'Thiết bị điện tử' },
+    //     { id: 'home', name: 'Nhà cửa & Đời sống' },
+    //     { id: 'beauty', name: 'Làm đẹp' },
+    //     { id: 'food', name: 'Thực phẩm' },
+    //     { id: 'sports', name: 'Thể thao' },
+    //     { id: 'books', name: 'Sách & Văn phòng phẩm' },
+    //     { id: 'toys', name: 'Đồ chơi' },
+    //     { id: 'health', name: 'Sức khỏe' },
+    //     { id: 'other', name: 'Khác' }
+    // ];
 
     const validate = () => {
         const newErrors = {};
@@ -105,6 +107,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
 
             const response = await authService.customer_register(apiData);
             showToast.success('Đăng ký thành công!');
+            onSubmit();
         } catch (error) {
             showToast.error(error?.message || 'Đăng ký thất bại. Vui lòng thử lại');
         } finally {
@@ -138,14 +141,8 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
         }
     };
 
-    const handleCategoryChange = (categoryId) => {
-        setSelectedCategories(prev => {
-            if (prev.includes(categoryId)) {
-                return prev.filter(id => id !== categoryId);
-            } else {
-                return [...prev, categoryId];
-            }
-        });
+    const handleSelectChange = (values) => {
+        setSelectedCategories(values);
     };
 
     return (
@@ -389,31 +386,27 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange }) => {
                         </div>
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Lĩnh vực kinh doanh <span className="text-red-500">*</span>
                             </label>
-                            <div className="mt-1">
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                    {businessCategories.map(category => (
-                                        <div key={category.id} className="flex items-center">
-                                            <input
-                                                id={`category-${category.id}`}
-                                                name="businessCategories"
-                                                type="checkbox"
-                                                checked={selectedCategories.includes(category.id)}
-                                                onChange={() => handleCategoryChange(category.id)}
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                            />
-                                            <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-700">
-                                                {category.name}
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                                {errors.businessCategories && (
-                                    <p className="mt-2 text-sm text-red-600">{errors.businessCategories}</p>
-                                )}
-                            </div>
+                            <Select
+                                isMulti
+                                options={categories.map(c => ({ value: c._id, label: c.name }))}
+                                value={categories
+                                    .filter(c => selectedCategories.includes(c._id))
+                                    .map(c => ({ value: c._id, label: c.name }))
+                                }
+                                onChange={(selected) => {
+                                    const values = selected.map(opt => opt.value);
+                                    setSelectedCategories(values);
+                                }}
+                                className="react-select-container"
+                                classNamePrefix="react-select"
+                                placeholder="Chọn lĩnh vực..."
+                            />
+                            {errors.businessCategories && (
+                                <p className="mt-2 text-sm text-red-600">{errors.businessCategories}</p>
+                            )}
                         </div>
 
                         <div className="md:col-span-2">

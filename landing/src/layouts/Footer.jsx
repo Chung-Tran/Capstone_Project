@@ -15,8 +15,8 @@ const Footer = () => {
                     <div className="lg:col-span-2">
                         <div className="mb-6">
                             <Link to="/" className="flex items-center">
-                                <img src="/logo.svg" alt="Store Logo" className="h-8 w-auto mr-2 brightness-0 invert" />
-                                <span className="text-xl font-bold text-white">ELEGANCE</span>
+                                <img src="/logo.png" alt="Store Logo" className="h-10 w-auto mr-2 brightness-0 invert" />
+                                <span className="text-xl font-bold text-white">Capstone Mall</span>
                             </Link>
                         </div>
                         <p className="text-gray-400 mb-6">
@@ -41,37 +41,36 @@ const Footer = () => {
 
                     {/* Shop Links */}
                     <div>
-                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Shop</h4>
+                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Mua sắm</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/new-arrivals" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">New Arrivals</Link></li>
-                            <li><Link to="/women" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Women</Link></li>
-                            <li><Link to="/men" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Men</Link></li>
-                            <li><Link to="/accessories" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Accessories</Link></li>
-                            <li><Link to="/sale" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Sale</Link></li>
+                            <li><Link to="/new-arrivals" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Trang chủ</Link></li>
+                            <li><Link to="/women" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Danh mục</Link></li>
+                            <li><Link to="/men" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Dành cho bạn</Link></li>
+                            <li><Link to="/accessories" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Sản phẩm mới</Link></li>
                         </ul>
                     </div>
 
                     {/* Help Links */}
                     <div>
-                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Help</h4>
+                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Dịch vụ</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/customer-service" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Customer Service</Link></li>
-                            <li><Link to="/track-order" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Track Your Order</Link></li>
-                            <li><Link to="/shipping" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Shipping & Delivery</Link></li>
-                            <li><Link to="/returns" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Returns & Exchanges</Link></li>
+                            <li><Link to="/customer-service" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Sản phẩm yêu thích</Link></li>
+                            <li><Link to="/track-order" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Giỏ hàng của tôi</Link></li>
+                            <li><Link to="/shipping" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Đơn hàng của tôi</Link></li>
+                            <li><Link to="/returns" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Chăm sóc khách hàng</Link></li>
                             <li><Link to="/faq" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">FAQ</Link></li>
                         </ul>
                     </div>
 
                     {/* Newsletter Column */}
                     <div className="lg:col-span-1">
-                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Stay Updated</h4>
-                        <p className="text-gray-400 mb-4">Subscribe to our newsletter to receive updates and exclusive offers.</p>
+                        <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Thông báo</h4>
+                        <p className="text-gray-400 mb-4">Đăng ký để nhận được thông báo mới từ chúng tôi.</p>
                         <form className="mb-6">
                             <div className="flex">
                                 <input
                                     type="email"
-                                    placeholder="Your email address"
+                                    placeholder="Email của bạn"
                                     className="bg-gray-800 text-white px-4 py-2 w-full focus:outline-none focus:ring-1 focus:ring-amber-600"
                                     required
                                 />
@@ -79,7 +78,7 @@ const Footer = () => {
                                     type="submit"
                                     className="bg-amber-600 text-white px-4 py-2 font-medium hover:bg-amber-700 transition-colors"
                                 >
-                                    Subscribe
+                                    Đăng ký
                                 </button>
                             </div>
                         </form>
@@ -102,7 +101,7 @@ const Footer = () => {
                     <div className="flex flex-col md:flex-row md:justify-between items-center">
                         <div className="mb-4 md:mb-0">
                             <p className="text-gray-500 text-sm">
-                                &copy; {currentYear} ELEGANCE. All rights reserved.
+                                &copy; {currentYear} CAPSTONE MALL. All rights reserved.
                             </p>
                         </div>
                         <div className="flex space-x-6">

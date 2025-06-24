@@ -35,7 +35,7 @@ const ProductCard = ({ product, type = "default" }) => {
                 } else {
                     dispatch(incrementWishlistCount(product._id));
                 }
-                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào wishlist');
+                showToast.success(itemType === 'cart' ? 'Đã thêm vào giỏ hàng' : 'Đã thêm vào sản phẩm yêu thích');
             } catch (error) {
                 console.log(error)
                 showToast.error(error.message || 'Đã xảy ra lỗi');

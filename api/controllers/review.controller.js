@@ -7,7 +7,7 @@ const { uploadImage } = require("../services/uploadService");
 const mongoose = require("mongoose");
 
 const createReview = asyncHandler(async (req, res) => {
-  const { product_id, rating, title, content, review_type } = req.body;
+  const { product_id, rating, title, content, review_type, store_id } = req.body;
   const customer_id = req.user._id;
   let imageUrl = null;
   if (req.files && req.files.images) {
@@ -15,6 +15,7 @@ const createReview = asyncHandler(async (req, res) => {
   }
   const review = await Review.create({
     review_type,
+    store_id,
     product_id,
     customer_id,
     rating,
@@ -22,6 +23,7 @@ const createReview = asyncHandler(async (req, res) => {
     images: imageUrl,
     title,
   });
+
 
   if (review) {
     res.status(201).json(
@@ -100,6 +102,42 @@ const getProductReviews = asyncHandler(async (req, res) => {
   res.json(formatResponse(true, response, "Reviews retrieved successfully"));
 });
 
+const getReviewsByIds = asyncHandler(async (req, res) => {
+  const { review_ids } = req.body; // Mảng các ID review
+
+  if (!review_ids || !Array.isArray(review_ids) || review_ids.length === 0) {
+    return res.status(400).json(formatResponse(false, null, "Review IDs are required"));
+  }
+
+  const reviews = await Review.find({
+    _id: { $in: review_ids },
+    review_type: "product_review",
+  })
+    .populate("customer_id", "fullName avatar")
+    .populate("product_id", "name main_image price")
+    .sort({ created_at: -1 });
+
+  // Gom nhóm reviews theo product_id
+  const groupedReviews = reviews.reduce((acc, review) => {
+    const productId = review.product_id._id.toString();
+    if (!acc[productId]) {
+      acc[productId] = {
+        product: review.product_id,
+        reviews: []
+      };
+    }
+    acc[productId].reviews.push(review);
+    return acc;
+  }, {});
+
+  const response = {
+    groupedReviews,
+    totalReviews: reviews.length
+  };
+
+  res.json(formatResponse(true, response, "Reviews retrieved successfully"));
+});
+
 const updateReview = asyncHandler(async (req, res) => {
   const review = await Review.findOne({
     _id: req.params.id,
@@ -148,62 +186,62 @@ const deleteReview = asyncHandler(async (req, res) => {
 });
 
 const replyToReview = asyncHandler(async (req, res) => {
-    const reviewId = req.params.reviewId;
-    const { content } = req.body;
-    const sellerId = req.user._id;
+  const reviewId = req.params.reviewId;
+  const { content } = req.body;
+  const sellerId = req.user._id;
 
-    console.log('Received:', { reviewId, content, sellerId });
+  console.log('Received:', { reviewId, content, sellerId });
 
-    if (!content || typeof content !== 'string') {
-        res.status(400);
-        throw new Error('Invalid Data Format: Content is required and must be a string');
-    }
+  if (!content || typeof content !== 'string') {
+    res.status(400);
+    throw new Error('Invalid Data Format: Content is required and must be a string');
+  }
 
-    const review = await Review.findById(reviewId);
-    if (!review) {
-        res.status(404);
-        throw new Error('Review not found');
-    }
+  const review = await Review.findById(reviewId);
+  if (!review) {
+    res.status(404);
+    throw new Error('Review not found');
+  }
 
-    const product = await Product.findById(review.product_id);
-    console.log('Product:', product);
-    if (!product) {
-        res.status(404);
-        throw new Error('Product not found for this review');
-    }
+  const product = await Product.findById(review.product_id);
+  console.log('Product:', product);
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found for this review');
+  }
 
-    const store = await Store.findById(product.store_id);
-    console.log('Store:', store);
-    if (!store) {
-        res.status(404);
-        throw new Error('Store not found for this product');
-    }
-    if (store.owner_id.toString() !== sellerId.toString()) {
-        res.status(403);
-        throw new Error('Unauthorized to reply to this review');
-    }
+  const store = await Store.findById(product.store_id);
+  console.log('Store:', store);
+  if (!store) {
+    res.status(404);
+    throw new Error('Store not found for this product');
+  }
+  if (store.owner_id.toString() !== sellerId.toString()) {
+    res.status(403);
+    throw new Error('Unauthorized to reply to this review');
+  }
 
-    review.reply = {
-        content,
-        replied_at: new Date(),
-    };
+  review.reply = {
+    content,
+    replied_at: new Date(),
+  };
 
-    try {
-        await review.save();
-        console.log('Saved review:', review);
-    } catch (saveError) {
-        console.error('Save error:', saveError);
-        res.status(500);
-        throw new Error('Lỗi khi lưu phản hồi');
-    }
+  try {
+    await review.save();
+    console.log('Saved review:', review);
+  } catch (saveError) {
+    console.error('Save error:', saveError);
+    res.status(500);
+    throw new Error('Lỗi khi lưu phản hồi');
+  }
 
-    try {
-        res.json(formatResponse(true, review.toObject(), 'Reply submitted successfully', {}));
-    } catch (jsonError) {
-        console.error('JSON response error:', jsonError);
-        res.status(500);
-        throw new Error('Lỗi khi gửi phản hồi');
-    }
+  try {
+    res.json(formatResponse(true, review.toObject(), 'Reply submitted successfully', {}));
+  } catch (jsonError) {
+    console.error('JSON response error:', jsonError);
+    res.status(500);
+    throw new Error('Lỗi khi gửi phản hồi');
+  }
 });
 
 const getProductListWithReviewStats = asyncHandler(async (req, res) => {
@@ -214,11 +252,10 @@ const getProductListWithReviewStats = asyncHandler(async (req, res) => {
 
   const searchCondition = search
     ? {
-        store_id,
-        name: { $regex: search, $options: "i" },
-      }
+      store_id,
+      name: { $regex: search, $options: "i" },
+    }
     : { store_id: new mongoose.Types.ObjectId(store_id) };
-  console.log(searchCondition, store_id);
 
   const products = await Product.aggregate([
     { $match: searchCondition },
@@ -308,5 +345,6 @@ module.exports = {
     deleteReview,
     replyToReview,
     getProductListWithReviewStats,
+    getReviewsByIds,
   },
 };

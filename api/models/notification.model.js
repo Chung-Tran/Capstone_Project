@@ -4,20 +4,27 @@ const notificationSchema = new mongoose.Schema({
     customer_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
-        required: true
     },
     type: {
         type: String,
-        required: true
     },
     title: {
         type: String,
-        required: true
     },
     content: String,
     is_read: {
         type: Boolean,
         default: false
+    },
+    is_created_by_ai: {
+        type: Boolean,
+        default: false
+    },
+    negative_comment_ids: {
+        type: Array,
+    },
+    data: {
+        type: Array,
     },
     order_id: {
         type: mongoose.Schema.Types.ObjectId,

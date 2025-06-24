@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, Timeline, Badge, Tooltip } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Timeline, Badge, Tooltip, Spin, message, Image } from 'antd';
 import {
     Shield,
     CheckCircle,
@@ -16,79 +16,81 @@ import {
     Copy,
     ExternalLink
 } from 'lucide-react';
+import traceProductService from '../../services/traceProduct.service';
+import dayjs from 'dayjs';
+import { formatDateTime } from '../../common/methodsCommon';
 
-const BlockchainAuthModal = () => {
+const BlockchainAuthModal = ({ productId, isAuthenticated = false }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [traceData, setTraceData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [selectedStepImages, setSelectedStepImages] = useState([]);
 
-    // Mock data based on your API response
-    const mockData = {
-        success: true,
-        productId: "68020898b679ab59636c5ef3",
-        cid: "bafkreiekbq4cdrhh54cajvyhlx4f2lhkd53rdhuexk3xhrrfdtcd7ygvke",
-        traceData: {
-            productId: "68020898b679ab59636c5ef3",
-            productName: "iPhone 14 Pro Max",
-            sellerId: "67f3931a601f14d815f28574",
-            manufacturerName: "Apple Inc.",
-            manufacturingCountry: "USA",
-            timestamp: "2025-06-03T09:45:00Z",
-            version: 1,
-            verifiedBy: ["VietCert", "SGS"],
-            supplyChainSteps: [
-                {
-                    step: "Manufactured",
-                    location: "California, USA",
-                    timestamp: "2025-05-01T08:00:00Z",
-                    description: "Sản phẩm được sản xuất tại nhà máy chính của Apple.",
-                    image: "https://gateway.pinata.cloud/ipfs/QmABC123.../factory.jpg",
-                    verifiedBy: "Apple Inc."
-                },
-                {
-                    step: "Shipped to warehouse",
-                    location: "Singapore",
-                    timestamp: "2025-05-03T13:30:00Z",
-                    description: "Giao đến kho phân phối khu vực Đông Nam Á.",
-                    image: "https://gateway.pinata.cloud/ipfs/QmXYZ456.../warehouse.jpg",
-                    verifiedBy: "DHL Express"
+    // Fetch trace data when modal opens
+    useEffect(() => {
+        if (!isVisible || !productId) return;
+
+        const fetchTraceData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await traceProductService.getProductTrace(productId);
+                if (response.isSuccess) {
+                    setTraceData(response.data);
+                } else {
+                    setError('Không thể tải thông tin xác thực sản phẩm');
                 }
-            ]
-        }
-    };
+            } catch (err) {
+                console.error('Lỗi khi fetch traceData:', err);
+                setError('Có lỗi xảy ra khi tải dữ liệu');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTraceData();
+    }, [isVisible, productId]);
 
     const formatDate = (timestamp) => {
-        return new Date(timestamp).toLocaleDateString('vi-VN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return dayjs(timestamp).format('DD/MM/YYYY');
     };
 
     const handleCopyCID = () => {
-        navigator.clipboard.writeText(mockData.cid);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    const getStepIcon = (step) => {
-        switch (step.toLowerCase()) {
-            case 'manufactured':
-                return <Factory className="w-4 h-4" />;
-            case 'shipped to warehouse':
-                return <Truck className="w-4 h-4" />;
-            default:
-                return <Package className="w-4 h-4" />;
+        if (traceData?.cid) {
+            navigator.clipboard.writeText(traceData.cid);
+            setCopied(true);
+            message.success('Đã sao chép CID!');
+            setTimeout(() => setCopied(false), 2000);
         }
     };
 
-    const timelineItems = mockData.traceData.supplyChainSteps.map((step, index) => ({
-        // dot: (
-        //     <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white">
-        //         {getStepIcon(step.step)}
-        //     </div>
-        // ),
+    const handleViewImages = (step) => {
+        let images = [];
+        if (step.images && Array.isArray(step.images)) {
+            images = step.images;
+        } else if (step.image) {
+            images = [step.image];
+        }
+        setSelectedStepImages(images);
+        setShowImageModal(true);
+    };
+
+    const getStepIcon = (step) => {
+        const stepLower = step.toLowerCase();
+        if (stepLower.includes('manufactured') || stepLower.includes('sản xuất')) {
+            return <Factory className="w-4 h-4" />;
+        } else if (stepLower.includes('shipped') || stepLower.includes('vận chuyển') || stepLower.includes('giao')) {
+            return <Truck className="w-4 h-4" />;
+        } else {
+            return <Package className="w-4 h-4" />;
+        }
+    };
+
+
+    const timelineItems = traceData?.traceData?.supplyChainSteps?.map((step, index) => ({
         children: (
             <div className="ml-4 pb-6">
                 <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -119,11 +121,11 @@ const BlockchainAuthModal = () => {
                                 <Badge color="blue" text={step.verifiedBy} />
                             </div>
 
-                            {step.image && (
+                            {(step.image || (step.images && step.images.length > 0)) && (
                                 <Tooltip title="Xem ảnh minh chứng">
-                                    <button className="text-blue-500 hover:text-blue-600 text-xs flex items-center gap-1">
+                                    <button className="text-blue-500 hover:text-blue-600 text-xs flex items-center gap-1" onClick={() => handleViewImages(step)}>
                                         <Eye className="w-3 h-3" />
-                                        Xem ảnh
+                                        Xem ảnh ({step.images ? step.images.length : 1})
                                     </button>
                                 </Tooltip>
                             )}
@@ -132,7 +134,12 @@ const BlockchainAuthModal = () => {
                 </div>
             </div>
         )
-    }));
+    })) || [];
+
+    // Don't show the authentication badge if product is not authenticated
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <div className="">
@@ -154,6 +161,7 @@ const BlockchainAuthModal = () => {
                     centered
                     bodyStyle={{ padding: 0 }}
                     className="blockchain-auth-modal"
+                    destroyOnClose
                 >
                     <div className="relative">
                         {/* Header with blockchain gradient */}
@@ -175,9 +183,11 @@ const BlockchainAuthModal = () => {
                                         <CheckCircle className="w-5 h-5" />
                                         <span className="font-medium">Đã xác thực</span>
                                     </div>
-                                    <div className="text-xs text-blue-100">
-                                        Version {mockData.traceData.version}
-                                    </div>
+                                    {traceData?.traceData?.version && (
+                                        <div className="text-xs text-blue-100">
+                                            Version {traceData.traceData.version}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -189,106 +199,156 @@ const BlockchainAuthModal = () => {
 
                         {/* Content */}
                         <div className="p-6 bg-white">
-                            {/* Product info */}
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6 border border-blue-200">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-900 mb-2">
-                                            {mockData.traceData.productName}
-                                        </h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <Factory className="w-4 h-4 text-gray-500" />
-                                                <span className="text-gray-600">Nhà sản xuất: </span>
-                                                <span className="font-medium">{mockData.traceData.manufacturerName}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Globe className="w-4 h-4 text-gray-500" />
-                                                <span className="text-gray-600">Xuất xứ: </span>
-                                                <span className="font-medium">{mockData.traceData.manufacturingCountry}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="w-4 h-4 text-gray-500" />
-                                                <span className="text-gray-600">Thời gian: </span>
-                                                <span className="font-medium">{formatDate(mockData.traceData.timestamp)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="mb-3">
-                                            <span className="text-sm text-gray-600 mb-2 block">Tổ chức xác thực:</span>
-                                            <div className="flex flex-wrap gap-2">
-                                                {mockData.traceData.verifiedBy.map((org, index) => (
-                                                    <Badge key={index} color="green" text={org} />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <span className="text-sm text-gray-600 mb-2 block">Blockchain CID:</span>
-                                            <div className="flex items-center gap-2 bg-gray-100 p-2 rounded text-xs font-mono">
-                                                <Link className="w-3 h-3 text-blue-500" />
-                                                <span className="flex-1 truncate">{mockData.cid}</span>
-                                                <Tooltip title={copied ? "Đã sao chép!" : "Sao chép CID"}>
-                                                    <button
-                                                        onClick={handleCopyCID}
-                                                        className="text-blue-500 hover:text-blue-600"
-                                                    >
-                                                        <Copy className="w-3 h-3" />
-                                                    </button>
-                                                </Tooltip>
-                                            </div>
-                                        </div>
-                                    </div>
+                            {loading ? (
+                                <div className="text-center py-8">
+                                    <Spin size="large" />
+                                    <p className="mt-4 text-gray-600">Đang tải thông tin xác thực...</p>
                                 </div>
-                            </div>
+                            ) : error ? (
+                                <div className="text-center py-8">
+                                    <div className="text-red-500 mb-2">⚠️</div>
+                                    <p className="text-red-600">{error}</p>
+                                </div>
+                            ) : traceData ? (
+                                <>
+                                    {/* Product info */}
+                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6 border border-blue-200">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <h3 className="font-bold text-lg text-gray-900 mb-2">
+                                                    {traceData.traceData.productName}
+                                                </h3>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <Factory className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-gray-600">Nhà sản xuất: </span>
+                                                        <span className="font-medium">{traceData.traceData.manufacturerName}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Globe className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-gray-600">Xuất xứ: </span>
+                                                        <span className="font-medium">{traceData.traceData.manufacturingCountry || 'Việt Nam'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-gray-600">Thời gian: </span>
+                                                        <span className="font-medium">{formatDateTime(traceData.traceData.timestamp)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                            {/* Supply chain timeline */}
-                            <div>
-                                <h4 className="font-semibold text-gray-900 mb-6 flex items-center gap-2 text-base">
-                                    <Users className="w-5 h-5 text-blue-500" />
-                                    Chuỗi cung ứng sản phẩm
-                                </h4>
+                                            <div>
+                                                <div className="mb-3">
+                                                    <span className="text-sm text-gray-600 mb-2 block">Tổ chức xác thực:</span>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {traceData.traceData.verifiedBy?.map((org, index) => (
+                                                            <Badge key={index} color="green" text={org} />
+                                                        )) || (
+                                                                <>
+                                                                    <Badge color="green" text="Đơn vị nội bộ" />
+                                                                    <Badge color="green" text="Đơn vị bên ngoài" />
+                                                                    <Badge color="green" text="Đơn vị có ủy quyền" />
+                                                                </>
+                                                            )}
+                                                    </div>
+                                                </div>
 
-                                <Timeline
-                                    items={timelineItems}
-                                    className="blockchain-timeline"
+                                                {traceData.cid && (
+                                                    <div>
+                                                        <span className="text-sm text-gray-600 mb-2 block">Blockchain CID:</span>
+                                                        <div className="flex items-center gap-2 bg-gray-100 p-2 rounded text-xs font-mono">
+                                                            <Link className="w-3 h-3 text-blue-500" />
+                                                            <span className="flex-1 truncate">{traceData.cid}</span>
+                                                            <Tooltip title={copied ? "Đã sao chép!" : "Sao chép CID"}>
+                                                                <button
+                                                                    onClick={handleCopyCID}
+                                                                    className="text-blue-500 hover:text-blue-600"
+                                                                >
+                                                                    <Copy className="w-3 h-3" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Supply chain timeline */}
+                                    {timelineItems.length > 0 && (
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900 mb-6 flex items-center gap-2 text-base">
+                                                <Users className="w-5 h-5 text-blue-500" />
+                                                Chuỗi cung ứng sản phẩm
+                                            </h4>
+
+                                            <Timeline
+                                                items={timelineItems}
+                                                className="blockchain-timeline"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Footer */}
+                                    <div className="mt-6 pt-4 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <Shield className="w-4 h-4 text-green-500" />
+                                                <span>Thông tin được bảo mật trên blockchain, không thể thay đổi</span>
+                                            </div>
+                                            {/* <button className="text-blue-500 hover:text-blue-600 text-sm flex items-center gap-1">
+                                                <ExternalLink className="w-4 h-4" />
+                                                Xem trên blockchain explorer
+                                            </button> */}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
+                </Modal>
+
+                <Modal
+                    open={showImageModal}
+                    onCancel={() => setShowImageModal(false)}
+                    footer={null}
+                    width={800}
+                    centered
+                    title="Hình ảnh minh chứng"
+                >
+                    <div className="grid grid-cols-2 gap-4">
+                        {selectedStepImages.map((img, index) => (
+                            <div key={index} className="text-center">
+                                <Image
+                                    src={img}
+                                    alt={`Minh chứng ${index + 1}`}
+                                    style={{
+                                        width: '100%',
+                                        borderRadius: 8,
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                    placeholder
                                 />
                             </div>
-
-                            {/* Footer */}
-                            <div className="mt-6 pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                                        <Shield className="w-4 h-4 text-green-500" />
-                                        <span>Thông tin được bảo mật trên blockchain, không thể thay đổi</span>
-                                    </div>
-                                    <button className="text-blue-500 hover:text-blue-600 text-sm flex items-center gap-1">
-                                        <ExternalLink className="w-4 h-4" />
-                                        Xem trên blockchain explorer
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </Modal>
             </div>
 
             <style jsx>{`
-        .blockchain-auth-modal .ant-modal-content {
-          border-radius: 12px !important;
-          overflow: hidden;
-        }
-        
-        .blockchain-timeline .ant-timeline-item-tail {
-          border-left: 2px dashed #e5e7eb;
-        }
-        
-        .blockchain-timeline .ant-timeline-item:last-child .ant-timeline-item-tail {
-          display: none;
-        }
-      `}</style>
+                .blockchain-auth-modal .ant-modal-content {
+                    border-radius: 12px !important;
+                    overflow: hidden;
+                }
+                
+                .blockchain-timeline .ant-timeline-item-tail {
+                    border-left: 2px dashed #e5e7eb;
+                }
+                
+                .blockchain-timeline .ant-timeline-item:last-child .ant-timeline-item-tail {
+                    display: none;
+                }
+            `}</style>
         </div>
     );
 };

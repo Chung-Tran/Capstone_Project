@@ -4,7 +4,6 @@ const { ProductController } = require('../controllers/product.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 const loggingMiddleware = require('../middlewares/loggingMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
-const productController = require('../controllers/product.controller');
 
 const multiUpload = upload.fields([
     { name: 'main_image', maxCount: 1 },
@@ -18,6 +17,7 @@ router.post('/', authMiddleware, multiUpload, ProductController.createProduct);
 
 router.get('/store', authMiddleware, ProductController.getProductByStoreId);
 router.get('/featured', ProductController.getProductFeatured); //Sản phẩm nổi bật
+router.get('/for-you', ProductController.getProductForyou); //Sản phẩm dành cho bạn
 router.get('/flash-sale', ProductController.getProductByStoreId);//Sản phẩm flash sale
 router.get('/new', ProductController.getProductNew); //Sản phẩm mới
 router.get('/:id', ProductController.getProductById);

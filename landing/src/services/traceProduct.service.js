@@ -11,6 +11,14 @@ const traceProductService = {
             throw handleError(error);
         }
     },
+    updateProductTrace: async (productData) => {
+        try {
+            const response = await axiosClient.put('/traceability/', productData);
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
+    },
 
     getProductTrace: async (id) => {
 

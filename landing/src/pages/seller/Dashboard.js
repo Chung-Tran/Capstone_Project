@@ -15,6 +15,8 @@ import {
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 import { TrendingUp, TrendingDown, Package, ShoppingCart, Star, DollarSign, Users, Eye, Calendar, Award, RefreshCw } from "lucide-react";
 import dashboardService from "../../services/dashboard.service";
+import notificationService from "../../services/notification.service";
+import AINotifications from "../../components/notification/AINotifications";
 
 ChartJS.register(
   CategoryScale,
@@ -40,18 +42,20 @@ const SellerDashboard = () => {
   const [customerStats, setCustomerStats] = useState([]);
   const [timeFilter, setTimeFilter] = useState('6months');
   const [chartType, setChartType] = useState('month');
+  const [notifyList, setNotifyList] = useState([]);
 
   const fetchDashboardData = async (showRefresh = false) => {
     try {
       if (showRefresh) setRefreshing(true);
 
-      const [summaryRes, revenueRes, ordersRes, topProductsRes, orderStatusRes, customerStatsRes] = await Promise.all([
+      const [summaryRes, revenueRes, ordersRes, topProductsRes, orderStatusRes, customerStatsRes, notifyRes] = await Promise.all([
         dashboardService.getSummary(timeFilter),
         dashboardService.getRevenueOverTime(chartType, timeFilter),
         dashboardService.getOrdersOverTime(chartType, timeFilter),
         dashboardService.getTopSellingProducts(10, timeFilter),
         dashboardService.getOrderStatus(timeFilter),
         dashboardService.getCustomerStats(timeFilter),
+        notificationService.getnotiCreatedByAI()
       ]);
 
       setSummary(summaryRes.data);
@@ -60,6 +64,7 @@ const SellerDashboard = () => {
       setTopProducts(topProductsRes.data);
       setOrderStatus(orderStatusRes.data);
       setCustomerStats(customerStatsRes.data);
+      setNotifyList(notifyRes.data);
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu dashboard:", error);
     } finally {
@@ -268,12 +273,18 @@ const SellerDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
+        <div className="mb-8 w-full">
+          <AINotifications notifications={notifyList} />
+        </div>
+
         <div className="mb-8">
           <div className="flex items-center justify-between">
+
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard Người bán</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Tổng quan hiệu suất kinh doanh của bạn</p>
             </div>
+
             <div className="flex items-center space-x-4">
               <select
                 value={chartType}

@@ -330,7 +330,6 @@ const ProductForm = ({
     onPreview: handlePreview,
     onChange: handleMainImageChange,
     beforeUpload: (file) => {
-      // Don't actually upload the file to the server here
       return false;
     },
     maxCount: 1,
@@ -448,6 +447,14 @@ const ProductForm = ({
                     <Button type="primary" onClick={() => setShowTraceDetailModal(true)}>
                       ✅ Đã xác thực - Xem chi tiết
                     </Button>
+                    {
+                      initialData.isTraceVerified ?
+                        <Button className="ml-3" onClick={() => setShowTraceProductModal(true)}>
+                          Bổ sung thông tin
+                        </Button>
+                        :
+                        null
+                    }
                   </Tooltip>
                 ) : (
                   <Tooltip title="Bắt đầu xác thực sản phẩm trên blockchain">
@@ -525,6 +532,7 @@ const ProductForm = ({
           open={showTraceProductModal}
           onClose={() => setShowTraceProductModal(false)}
           productData={initialData}
+          isEditing={initialData.isTraceVerified}
         />
         <TraceProductDetailModal
           open={showTraceDetailModal}
@@ -638,6 +646,10 @@ const ProductForm = ({
                     placeholder="Chọn danh mục"
                     allowClear
                     style={{ width: "100%" }}
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().includes(input.toLowerCase())
+                    }
                   >
                     {renderCategoryOptions(categories)}
                   </Select>

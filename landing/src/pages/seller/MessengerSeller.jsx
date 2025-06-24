@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 import useChat from '../../hooks/useChat';
+import { useSocketContext } from '../../contexts/SocketContext';
 
-const Messages = () => {
+const MessengerSeller = () => {
     const [selectedChat, setSelectedChat] = useState(null);
+    const [inputValue, setInputValue] = useState('');
+    const [chatMessages, setChatMessages] = useState([]);
+    const { socket, sendMessage, on } = useSocketContext();
     const [chats] = useState([
         {
             id: 1,
@@ -22,19 +26,27 @@ const Messages = () => {
         },
         // Thêm các cuộc trò chuyện mẫu khác
     ]);
-    const [inputValue, setInputValue] = useState('');
-    const {
-        messages,
-        users,
-        isConnected,
-        sendMessage,
-    } = useChat('123');
+
+    // Giả sử mỗi chat có id là roomId
+    useEffect(() => {
+        if (!selectedChat || !socket) return;
+        socket.emit('join_room', selectedChat.id);
+
+        const cleanup = on('receive_message', (msg) => {
+            setChatMessages((prev) => [...prev, msg]);
+        });
+
+        return () => {
+            cleanup && cleanup();
+        };
+    }, [selectedChat, socket, on]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        sendMessage('check');
-
-
+        if (inputValue && selectedChat) {
+            sendMessage(inputValue, selectedChat.id);
+            setInputValue('');
+        }
     };
 
     return (
@@ -73,28 +85,28 @@ const Messages = () => {
                 <div className="flex-1 flex flex-col">
                     {selectedChat ? (
                         <>
-                            {/* Chat Header */}
-                            <div className="p-4 border-b">
-                                <h3 className="font-medium">{selectedChat.customer}</h3>
-                            </div>
-
-                            {/* Messages */}
+                            {/* ...existing code... */}
                             <div className="flex-1 p-4 overflow-y-auto">
-                                {/* Messages will be displayed here */}
+                                {chatMessages.map((msg, idx) => (
+                                    <div key={idx} className="mb-2">
+                                        <span className="font-semibold">{msg.senderName}: </span>
+                                        <span>{msg.content}</span>
+                                    </div>
+                                ))}
                             </div>
-
-                            {/* Message Input */}
                             <div className="p-4 border-t">
-                                <div className="flex space-x-2">
+                                <form className="flex space-x-2" onSubmit={handleSubmit}>
                                     <input
                                         type="text"
                                         placeholder="Nhập tin nhắn..."
                                         className="flex-1 border rounded-lg px-4 py-2"
+                                        value={inputValue}
+                                        onChange={e => setInputValue(e.target.value)}
                                     />
-                                    <button className="p-2 bg-blue-500 text-white rounded-lg">
-                                        <PaperAirplaneIcon className="w-5 h-5" onClick={handleSubmit} />
+                                    <button className="p-2 bg-blue-500 text-white rounded-lg" type="submit">
+                                        <PaperAirplaneIcon className="w-5 h-5" />
                                     </button>
-                                </div>
+                                </form>
                             </div>
                         </>
                     ) : (
@@ -108,4 +120,4 @@ const Messages = () => {
     );
 };
 
-export default Messages; 
+export default MessengerSeller; 
