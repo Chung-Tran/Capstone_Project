@@ -6,7 +6,7 @@ class SocketHandler {
     constructor(server) {
         this.io = socketIo(server, {
             cors: {
-                origin: process.env.CLIENT_URL || "http://localhost:3000",
+                origin: process.env.CLIENT_URL || "http://160.250.133.57:3000",
                 methods: ["GET", "POST"]
             },
             pingTimeout: 60000,

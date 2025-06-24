@@ -155,12 +155,12 @@ function App() {
   return (
     <Provider store={store}>
       <AuthProvider>
-        <SocketProvider token={token}>
-          <Router>
-            <AppRoutes />
-            <ToastContainer />
-          </Router>
-        </SocketProvider>
+        {/* <SocketProvider token={token}> */}
+        <Router>
+          <AppRoutes />
+          <ToastContainer />
+        </Router>
+        {/* </SocketProvider> */}
 
       </AuthProvider>
     </Provider>
