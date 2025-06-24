@@ -1,20 +1,15 @@
-# Dockerfile for Python Service
 FROM python:3.11.9
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file
+# Copy and install dependencies
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
+# Copy source code
 COPY . .
 
-# Expose the port the app runs on
 EXPOSE 8080
 
-# Command to run the application
-CMD ["python", "app.py"]  # Change app.py to your main application file
+# Run with uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
