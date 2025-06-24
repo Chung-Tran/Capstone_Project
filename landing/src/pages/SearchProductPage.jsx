@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Search, SlidersHorizontal, X, ChevronDown, ChevronUp,
     Grid, List, Star, ArrowDownUp, ChevronLeft, ChevronRight
@@ -131,9 +131,20 @@ const SearchProductPage = () => {
     const [sortOptionSelected, setSortOptionSelected] = useState('relevance');
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [products, setProducts] = useState([]);
-    const categoriesFromRedux = useSelector((state) => state.common.categories); //Categories from Redux store
+    let categoriesFromRedux = useSelector((state) => state.common.categories)
     const [categories, setCategories] = useState(categoriesFromRedux);
+    const sortedCategories = useMemo(() => {
+        if (categoriesFromRedux?.length > 0) {
+            return [...categoriesFromRedux]
+                .sort((a, b) => b.productCount - a.productCount)
+                .slice(0, 20);
+        }
+        return [];
+    }, [categoriesFromRedux]);
 
+    useEffect(() => {
+        setCategories(sortedCategories);
+    }, [sortedCategories]);
     // Separated filter states
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedRatings, setSelectedRatings] = useState([]);
@@ -318,6 +329,7 @@ const SearchProductPage = () => {
         fetchProducts();
         fetchCategories();
     }, [keyword]);
+
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-6">

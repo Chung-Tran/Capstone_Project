@@ -359,6 +359,7 @@ const ProductDetailPage = () => {
             <div className="flex gap-4 mt-2">
               <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
                 onClick={() => moveItemToCart()}
+                disabled={product.stock <= 0 || product.stock < quantity}
               >
                 <ShoppingCart size={20} />
                 <span>Thêm vào giỏ</span>
