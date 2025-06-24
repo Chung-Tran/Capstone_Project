@@ -33,6 +33,10 @@ const addToCustomerItems = asyncHandler(async (req, res) => {
         const existingItem = await CustomerItems.findOne({ customer_id, product_id, type: 'cart' });
 
         const totalQuantity = (existingItem?.quantity || 0) + quantity;
+        if (totalQuantity > product.stock) {
+            return res.status(400).json(formatResponse(false, null, `Sản phẩm không đủ hàng trong kho.Tối đa có thể thêm là ${product.stock}`));
+
+        }
 
         updatedItem = await CustomerItems.findOneAndUpdate(
             { customer_id, product_id, type: 'cart' },
@@ -157,6 +161,7 @@ const removeFromCart = asyncHandler(async (req, res) => {
 const getCart = asyncHandler(async (req, res) => {
     const customer_id = req.user._id;
 
+    // Lấy toàn bộ cart (có populate store)
     const cart = await CustomerItems.find({
         customer_id,
         type: 'cart'
@@ -168,7 +173,23 @@ const getCart = asyncHandler(async (req, res) => {
         }
     });
 
-    res.json(formatResponse(true, cart, 'Cart retrieved successfully'));
+    // Lọc và xử lý logic quantity vs stock
+    const filteredCart = cart
+        .filter(item => item.product_id && item.product_id.stock > 0)
+        .map(item => {
+            const product = item.product_id;
+            const maxQty = product.stock;
+
+            return {
+                ...item.toObject(), // convert Mongoose Document to plain JS object
+                quantity: Math.min(item.quantity, maxQty),
+                product_id: {
+                    ...product.toObject(),
+                }
+            };
+        });
+
+    res.json(formatResponse(true, filteredCart, 'Cart retrieved successfully'));
 });
 
 // Xóa toàn bộ giỏ hàng

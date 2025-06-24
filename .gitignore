@@ -5,3 +5,5 @@ ai_service/.venv
 API/contract/*
 
 api/.env
+api/.env
+landing/.env

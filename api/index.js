@@ -39,7 +39,7 @@ const corsOptions = {
     exposedHeaders: ['x-new-access-token', 'x-token-resetpassword'],
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 //Use routes
 app.use('/api', routes);
