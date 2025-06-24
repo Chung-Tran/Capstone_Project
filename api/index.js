@@ -22,9 +22,9 @@ cloudinary.config({
 // Connect db
 dbConnect();
 
-const socketHandler = new SocketHandler(server);
+// const socketHandler = new SocketHandler(server);
 
-app.locals.socketHandler = socketHandler;
+// app.locals.socketHandler = socketHandler;
 
 // Config server
 app.use(cookieParser());
@@ -33,7 +33,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 const corsOptions = {
     origin: [
-        'http://localhost:3000',
+        'http://160.250.133.57:3000',
     ],
     credentials: true,
     exposedHeaders: ['x-new-access-token', 'x-token-resetpassword'],

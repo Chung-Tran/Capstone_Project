@@ -4,7 +4,7 @@ const UserAction = require('../models/userAction.model');
 const Notification = require('../models/notification.model');
 const { log_action_type } = require('../common/Constant');
 
-const LOG_API_URL = 'http://localhost:8080/api'; // Cấu hình host Python
+const LOG_API_URL = 'http://160.250.133.57:8080/api'; // Cấu hình host Python
 
 const analyzeWeeklyComments = async () => {
     try {

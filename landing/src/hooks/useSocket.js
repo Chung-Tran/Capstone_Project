@@ -13,7 +13,7 @@ const useSocket = (token) => {
         }
 
         // Initialize socket connection
-        socketRef.current = io('http://localhost:3030', {
+        socketRef.current = io('http://160.250.133.57:3030', {
             auth: { token },
             autoConnect: true,
             reconnection: true,
