@@ -5,6 +5,10 @@ const notificationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
     },
+    store_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+    },
     type: {
         type: String,
     },

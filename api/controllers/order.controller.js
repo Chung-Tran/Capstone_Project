@@ -5,6 +5,8 @@ const CustomerItems = require('../models/customerItems.model');
 const Store = require('../models/store.model');
 const Product = require('../models/product.model');
 const formatResponse = require('../middlewares/responseFormat');
+const Notification = require('../models/notification.model');
+const mongoose = require("mongoose");
 
 const createOrder = asyncHandler(async (req, res) => {
   const { items, address, payment_method, total, receiverName, receiverPhone } = req.body;
@@ -14,9 +16,10 @@ const createOrder = asyncHandler(async (req, res) => {
   const order_code = `ORDER-${(orderCount + 1).toString().padStart(3, '0')}`;
 
   let subtotal = 0;
+  const storeIds = new Set();
   for (const item of items) {
     subtotal += item.quantity * item.product_id.price;
-
+    storeIds.add(item.product_id.store_id._id.toString());
   }
   if (subtotal != total) { //Total từ frontend không khớp với tổng tiền hàng 
     throw new Error('Đã xảy ra lỗi trong quá trình thanh toán');
@@ -53,7 +56,6 @@ const createOrder = asyncHandler(async (req, res) => {
           total_price: item.quantity * item.product_id.price,
           status: 'active',
         });
-
         // Tăng quantitySold
         await Product.findByIdAndUpdate(
           item.product_id._id,
@@ -61,6 +63,31 @@ const createOrder = asyncHandler(async (req, res) => {
         );
       })
     );
+    // Tạo thông báo
+    const notificationData = [];
+
+    // 1. Thông báo cho khách hàng
+    notificationData.push({
+      customer_id,
+      content: `Bạn đã đặt hàng thành công với mã đơn hàng: ${order.order_code}`,
+      title: 'Đặt hàng thành công',
+      type: 'order_placed',
+      is_created_by_ai: false,
+      order_id: order._id,
+    });
+
+    // 2. Thông báo cho các store (chỉ 1 lần mỗi store)
+    for (const storeId of storeIds) {
+      notificationData.push({
+        store_id: new mongoose.Types.ObjectId(storeId),
+        content: `Bạn vừa có đơn hàng mới. Mã đơn hàng: ${order.order_code}`,
+        title: 'Đơn hàng mới',
+        type: 'order_new',
+        is_created_by_ai: false,
+        order_id: order._id,
+      });
+    }
+    await Notification.insertMany(notificationData);
 
     res.status(201).json(formatResponse(true, {
       _id: order._id,
@@ -209,7 +236,7 @@ const getStoreOrderDetail = asyncHandler(async (req, res) => {
 
     // Lấy thông tin order
     const order = await Order.findById(orderId)
-      .select('order_code created_at total_amount status receiverName receiverPhone receiverEmail address payment_method');
+      .select('order_code created_at total_amount status receiverName receiverPhone receiverEmail address payment_method payment_status');
 
     if (!order) {
       return res
@@ -257,7 +284,8 @@ const getStoreOrderDetail = asyncHandler(async (req, res) => {
         receiverPhone: order.receiverPhone,
         receiverEmail: order.receiverEmail,
         address: order.address,
-        payment_method: order.payment_method
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
       },
       items: storeOrderItems.map(item => ({
         _id: item._id,

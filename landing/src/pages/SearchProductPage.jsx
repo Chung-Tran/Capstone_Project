@@ -165,6 +165,7 @@ const SearchProductPage = () => {
             create_logger({
                 customer_id: localStorage.getItem('customer_id'),
                 action_type: log_action_type.SEARCH,
+                categories: tempSelectedCategories.toString(),
                 product_id: null,
                 keyword: searchQuery,
             })

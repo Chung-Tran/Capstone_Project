@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
@@ -16,6 +16,12 @@ import {
 } from '@heroicons/react/24/outline';
 import authService from '../services/auth.service';
 import { saveProductData, saveShopData } from '../store/slices/shopSlice';
+import { formatDateTime } from '../common/methodsCommon';
+import reviewService from '../services/review.service';
+import { NegativeCommentModal, UpcomingEventsModal } from '../components/notification/AINotifications';
+import { X } from 'lucide-react';
+import notificationService from '../services/notification.service';
+import { Tag } from 'antd';
 const SidebarLink = ({ to, icon: Icon, children, active }) => (
     <Link
         to={to}
@@ -32,6 +38,12 @@ const SellerLayout = ({ children }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [notifications, setNotifications] = useState(0); // Mock notifications
+    const [isNotiModalOpen, setIsNotiModalOpen] = useState(false); // Mock notifications
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [selectedNotification, setSelectedNotification] = useState(null);
+    const notificationRef = useRef(null);
+
+
     const loading = useSelector((state) => state.shop.loading);
     const handleLogout = () => {
         dispatch(logout());
@@ -51,8 +63,10 @@ const SellerLayout = ({ children }) => {
             try {
                 dispatch({ type: 'shop/setLoading', payload: true });
                 const response = await authService.get_shop_info();
+                const notifications = await authService.get_notifications();
                 dispatch(saveShopData(response.data.shopInfo));
                 dispatch(saveProductData(response.data.productInfo));
+                setNotifications(notifications.data);
             } catch (error) {
                 console.error('Failed to fetch shop info:', error);
             } finally {
@@ -61,6 +75,68 @@ const SellerLayout = ({ children }) => {
         };
         fetchShopInfo();
     }, []);
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setIsNotificationOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const renderUiNoti = () => {
+        if (!selectedNotification) return null;
+
+        const renderModal = () => {
+            switch (selectedNotification.type) {
+                case 'order_new':
+                    return navigate("/seller/orders");
+
+                case 'upcoming_events':
+                    return <UpcomingEventsModal notification={selectedNotification} />;
+                case 'negative_comments':
+                    return (<NegativeCommentModal notification={selectedNotification} />);
+                default:
+                    return null;
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                        <h2 className="text-xl font-semibold text-gray-900">Chi tiết thông báo</h2>
+                        <button
+                            onClick={() => setSelectedNotification(null)}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            aria-label="Đóng modal"
+                        >
+                            <X className="w-5 h-5 text-gray-500" />
+                        </button>
+                    </div>
+                    {renderModal()}
+                </div>
+            </div>
+        );
+    };
+    const handleMarkAllAsRead = async () => {
+        try {
+            await notificationService.markAllAsRead();
+            const updated = notifications.data_list.map(noti => ({
+                ...noti,
+                is_read: true,
+            }));
+            setNotifications(prev => ({
+                ...prev,
+                data_list: updated,
+                unread_count: 0,
+            }));
+        } catch (err) {
+            console.error("Failed to mark all as read:", err);
+        }
+    };
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -68,12 +144,83 @@ const SellerLayout = ({ children }) => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <div className="font-bold text-xl">Seller Center</div>
                     <div className="flex items-center space-x-4">
-                        <button className="relative p-2 rounded-full hover:bg-gray-100">
+                        <button className="relative p-2 rounded-full hover:bg-gray-100" ref={notificationRef}
+                            onClick={() => setIsNotificationOpen(!isNotificationOpen)}>
                             <BellIcon className="w-6 h-6" />
-                            {notifications > 0 && (
+                            {notifications?.unread_count > 0 && (
                                 <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                    {notifications}
+                                    {notifications.unread_count}
                                 </span>
+                            )}
+                            {isNotificationOpen && (
+                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2">
+                                    <div className="px-4 py-2 border-b border-gray-100">
+                                        <h3 className="font-medium">Thông báo</h3>
+                                    </div>
+                                    {isNotificationOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50">
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+                                                <h3 className="font-medium">Thông báo</h3>
+                                                <button
+                                                    onClick={handleMarkAllAsRead}
+                                                    className="text-xs text-blue-600 hover:underline"
+                                                >
+                                                    Đánh dấu tất cả là đã đọc
+                                                </button>
+                                            </div>
+
+                                            {/* Scrollable Notification List */}
+                                            <div className="max-h-96 overflow-y-auto ">
+                                                {notifications?.data_list?.length > 0 ? (
+                                                    notifications.data_list.map((notification) => (
+                                                        <div
+                                                            key={notification._id}
+                                                            className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-left relative border-b border-gray-100"
+                                                            onClick={() => {
+                                                                if (notification.type === 'order_new') {
+                                                                    return navigate("/seller/orders");
+                                                                }
+                                                                setSelectedNotification(notification)
+                                                            }}
+                                                        >
+                                                            {notification.is_created_by_ai && (
+                                                                <Tag
+                                                                    color="purple"
+                                                                    className=" "
+                                                                >
+                                                                    Được tạo bởi AI
+                                                                </Tag>
+                                                            )}
+
+                                                            <p className="text-sm text-gray-800">{notification.content}</p>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                {formatDateTime(notification.created_at)}
+                                                            </p>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-3 text-center text-sm text-gray-500">
+                                                        Không có thông báo
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Footer */}
+                                            {/* <div className="px-4 py-2 border-t border-gray-100">
+                                                <Link to="/notifications" className="text-sm text-blue-600 hover:text-blue-700">
+                                                    Xem thêm
+                                                </Link>
+                                            </div> */}
+                                        </div>
+                                    )}
+
+                                    <div className="px-4 py-2 border-t border-gray-100">
+                                        <Link to="/notifications" className="text-sm text-blue-600 hover:text-blue-700">
+                                            Xem thêm
+                                        </Link>
+                                    </div>
+                                </div>
                             )}
                         </button>
                         <button
@@ -122,6 +269,8 @@ const SellerLayout = ({ children }) => {
                     )}
                 </main>
             </div>
+            {renderUiNoti()}
+
         </div>
     );
 };

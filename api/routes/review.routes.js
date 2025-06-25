@@ -19,5 +19,6 @@ router.get('/store/:store_id/products', authMiddleware, ReviewController.getProd
 router.post('/by-ids', authMiddleware, ReviewController.getReviewsByIds);
 router.get('/review-analyze', AI_Service.analyzeWeeklyComments);
 router.get('/predict-categories', AI_Service.predictCategories);
+router.post('/recommendation/analyze-user', AI_Service.updateRecommendationData);
 
 module.exports = router;

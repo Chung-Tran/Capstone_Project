@@ -57,12 +57,7 @@ const ProductDetailPage = () => {
         fetchProductById(id),
         fetchProductReviews(id, { limit: 5, skip: 0 }),
       ]);
-      create_logger({
-        customer_id: localStorage.getItem('customer_id'),
-        action_type: log_action_type.CLICK_PRODUCT,
-        product_id: id,
-        keywords: product?.keywords,
-      })
+
       setLoading(false);
     };
 
@@ -80,6 +75,13 @@ const ProductDetailPage = () => {
       const response = await productService.getProductById(id);
       if (response.isSuccess) {
         setProduct(response.data);
+        create_logger({
+          customer_id: localStorage.getItem('customer_id'),
+          action_type: log_action_type.CLICK_PRODUCT,
+          product_id: id,
+          keywords: product?.keywords,
+          categories: response.data.category_id?.map(item => item._id).filter(item => !!item).toString(),
+        })
         setStore(response.data.store_info);
       } else {
         showToast.error("Không tìm thấy sản phẩm");

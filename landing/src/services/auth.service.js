@@ -89,7 +89,15 @@ const authService = {
         } catch (error) {
             throw handleError(error);
         }
-    }
+    },
+    get_notifications: async () => {
+        try {
+            const response = await axiosClient.get('/notifications/customer');
+            return handleResponse(response);
+        } catch (error) {
+            throw handleError(error);
+        }
+    },
 }
 
 export default authService;

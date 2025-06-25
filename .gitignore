@@ -7,3 +7,4 @@ API/contract/*
 api/.env
 api/.env
 landing/.env
+api/.env

@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const UserAction = require('../models/userAction.model');
 const Notification = require('../models/notification.model');
 const { log_action_type } = require('../common/Constant');
+const formatResponse = require('../middlewares/responseFormat');
+const LOG_API_URL = process.env.LOG_API_URL || 'http://160.250.133.57:8080/api'; // Cấu hình host Python
+// const LOG_API_URL = 'http://localhost:8080/api'; // Cấu hình host Python
 
-const LOG_API_URL = 'http://160.250.133.57:8080/api'; // Cấu hình host Python
-
-const analyzeWeeklyComments = async () => {
+const analyzeWeeklyComments = async (req, res) => {
     try {
 
         const now = new Date();
@@ -43,17 +44,20 @@ const analyzeWeeklyComments = async () => {
                         product_id: new mongoose.Types.ObjectId(negative_comments.product_id),
                         type: 'negative_comments',
                         title: 'Bình luận tiêu cực trong tuần qua',
-                        content: `Bạn có ${negative_comments.length} bình luận tiêu cực.`,
+                        content: `Bạn có ${negative_comments.length} bình luận tiêu cực trong tuần vừa qua.`,
                         data: negative_comments, // nếu cần chi tiết từng comment
                         is_created_by_ai: true,
                         negative_comment_ids: negative_comment_ids,
                         created_at: new Date()
                     });
-
+                    if (res)
+                        res.status(200).json(formatResponse(true, negative_comments, 'Thông báo đã gửi thành công'));
                     console.log(`→ Thông báo đã gửi cho store ${store_id}: ${negative_comments.length} comment tiêu cực.`);
                 }
             }
         } else {
+            if (res)
+                res.status(500).json({ message: 'Invalid response from prediction service,error:' }, error.message);
             console.error('❌ Python service trả về không hợp lệ:', response.data);
         }
     } catch (error) {
@@ -89,11 +93,36 @@ const predictCategories = async (req, res) => {
             return res.status(200).json(data);
         } else {
             console.error('❌ Python service trả về không hợp lệ:', response.data);
-            res.status(500).json({ message: 'Invalid response from prediction service' });
+            if (res)
+                res.status(500).json({ message: 'Invalid response from prediction service' });
         }
     } catch (error) {
         console.error('❌ Lỗi khi gọi predict event_categories:', error.message);
-        res.status(500).json({ message: 'Internal server error' });
+        if (res)
+            res.status(500).json({ message: 'Internal server error' });
+    }
+};
+const updateRecommendationData = async (req, res) => {
+    try {
+        const user_id = req?.user_id || req?.body?.user_id;
+        if (!user_id) return;
+        const response = await axios.post(`${LOG_API_URL}/recommendation/batch-analyze`, {
+            user_id: user_id,
+            analysis_days: 20,
+        });
+
+        if (response.status === 200) {
+            console.log("Update recommendation data for user" + user_id + "successfully")
+            return res.status(200).json(response.data);
+        } else {
+            console.error('❌ Python service trả về không hợp lệ:', response.data);
+            if (res)
+                res.status(500).json({ message: 'Invalid response from prediction service' });
+        }
+    } catch (error) {
+        console.error('❌ Lỗi khi gọi predict event_categories:', error);
+        if (res)
+            res.status(500).json({ message: 'Internal server error' });
     }
 };
 
@@ -101,5 +130,6 @@ module.exports = {
     AI_Service: {
         analyzeWeeklyComments,
         predictCategories,
+        updateRecommendationData,
     }
 };

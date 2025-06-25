@@ -9,6 +9,7 @@ const axiosLogger = axios.create({
 });
 
 const create_logger = async (logInfo) => {
+    if (!logInfo.customer_id) return;
     const logRequest = {
         customer_id: logInfo.customer_id || null,
         action_type: logInfo.action_type,

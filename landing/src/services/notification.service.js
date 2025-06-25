@@ -23,6 +23,16 @@ const notificationService = {
             throw handleError(error);
         }
     },
+    markAllAsRead: async () => {
+        try {
+            const response = await axiosClient.put(`/notifications/mark-all-as-read`);
+            const result = handleResponse(response);
+            return result;
+        } catch (error) {
+            console.error(`Error marking all notifications as read`, error);
+            throw handleError(error);
+        }
+    }
 
 };
 

@@ -20,7 +20,7 @@ import orderService from '../../services/order.service';
 
 const { Title, Text } = Typography;
 
-const PaymentStatusTag = ({ status }) => {
+export const PaymentStatusTag = ({ status }) => {
     const statusMap = {
         pending: { text: 'Chưa thanh toán', color: 'gold' },
         success: { text: 'Thành công', color: 'green' },

@@ -378,7 +378,6 @@ const getProductForyou = asyncHandler(async (req, res) => {
 
         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
             const recommendation = await Recommendation.findOne({ customer_id: userId });
-
             if (recommendation) {
                 const { keywords = [], brands = [], categories = [], price_range } = recommendation;
 
@@ -432,7 +431,7 @@ const getProductForyou = asyncHandler(async (req, res) => {
         // Nếu không có sản phẩm từ recommend, fallback sang sản phẩm nổi bật
         if (products.length === 0) {
             products = await Product.find({
-                is_featured: true,
+                // is_featured: true,
                 status: "active"
             })
                 .sort({ quantitySold: -1 })

@@ -1,0 +1,10 @@
+**/__pycache__/
+*.ipynb
+*.csv
+*.json
+*.log
+*.md
+*.zip
+.vscode/
+dataset/
+.venv/

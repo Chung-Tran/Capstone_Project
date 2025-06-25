@@ -4,6 +4,7 @@ const { NotificationController } = require('../controllers/notification.controll
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.post('/', authMiddleware, NotificationController.createNotification);
+router.put('/mark-all-as-read', authMiddleware, NotificationController.markAllAsRead);
 router.put('/:id/read', authMiddleware, NotificationController.markNotificationAsRead);
 router.get('/created-by-ai', authMiddleware, NotificationController.getNotificationCreatedByAI);
 router.get('/customer', authMiddleware, NotificationController.getCustomerNotifications);

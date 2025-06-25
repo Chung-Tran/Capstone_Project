@@ -52,7 +52,8 @@ export default function StorePage() {
                 create_logger({
                     customer_id: localStorage.getItem('customer_id'),
                     action_type: log_action_type.VIEW_SHOP,
-                    store_id: shopId
+                    store_id: shopId,
+                    categories: shopResponse.data?.business_field?.toString()
                 })
             } else {
                 showToast.error('Không thể tải thông tin cửa hàng');

@@ -136,9 +136,11 @@ function HomePage() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [resFeatured, resNew] = await Promise.all([
+                const [resFeatured, resNew, resForyou] = await Promise.all([
                     productService.product_featured(8, 0),
-                    productService.product_news(10, 0)
+                    productService.product_news(10, 0),
+                    productService.product_for_you(10, 0, localStorage.getItem('customer_id'))
+
                 ]);
 
                 if (!resFeatured.isSuccess || !resNew.isSuccess) {
@@ -146,6 +148,8 @@ function HomePage() {
                 }
                 setFeaturedProducts(resFeatured.data);
                 setNewProducts(resNew.data);
+                setRecommendedProducts(resForyou.data);
+
             } catch (err) {
                 showToast.error("Đã xảy ra lỗi khi tải sản phẩm");
             } finally {
@@ -211,7 +215,7 @@ function HomePage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                        {featuredProducts.map((product, index) => (
+                        {recommendedProducts.map((product, index) => (
                             <ProductCard
                                 key={`${index}`}
                                 product={product}

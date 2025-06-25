@@ -296,6 +296,7 @@ export default function ShoppingCart() {
                         customer_id: localStorage.getItem('customer_id'),
                         action_type: log_action_type.PURCHASE,
                         productId: item,
+                        
 
                     })
                 });

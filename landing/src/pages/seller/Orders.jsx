@@ -46,6 +46,7 @@ import orderService from '../../services/order.service';
 import { getStatusOrder } from '../../common/methodsCommon';
 import OrderActions from '../../components/order/OrderActions';
 import { showToast } from '../../utils/toast';
+import { PaymentStatusTag } from '../account/OrderHistory';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -470,7 +471,13 @@ const Orders = () => {
                                         {orderItemsDetail.order.payment_method || 'COD'}
                                     </Space>
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ giao hàng" span={2}>
+                                <Descriptions.Item label="Trạng thái thanh toán">
+                                    <Space>
+                                        <CreditCardOutlined />
+                                        <PaymentStatusTag status={orderItemsDetail.order.payment_status} />
+                                    </Space>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Địa chỉ giao hàng" >
                                     <Space>
                                         <HomeOutlined />
                                         {orderItemsDetail.order.address}

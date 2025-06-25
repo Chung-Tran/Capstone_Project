@@ -45,7 +45,6 @@ class UserBehaviorAnalyzer:
         })
         
         actions = await cursor.to_list(length=None)
-        print(f"📊 Found {len(actions)} actions for user {user_id}")
         return actions
     
     async def _get_product_details(self, user_actions: List[Dict]) -> Dict:
@@ -63,14 +62,12 @@ class UserBehaviorAnalyzer:
         cursor = product_collection.find(
             {"_id": {"$in": product_ids}},
             {
-                "name": 1, "category": 1, "brand": 1, "price": 1, 
+                "name": 1, "category_id": 1, "brand": 1, "price": 1, 
                 "keywords": 1, "tags": 1, "description": 1
             }
         )
         
         products = await cursor.to_list(length=None)
-        print("products",product_ids,products)
-        print(f"📦 Found details for {len(products)} products")
         return {str(p["_id"]): p for p in products}
     
     async def _create_recommendation_data(
@@ -89,7 +86,6 @@ class UserBehaviorAnalyzer:
         hourly_activity = defaultdict(int)
         
         recent_product_ids = []  # Sản phẩm tương tác gần đây
-        print("user_actions",product_details)
         for action in user_actions:
             action_type = action["action_type"]
             product_id = str(action["product_id"])
@@ -105,10 +101,14 @@ class UserBehaviorAnalyzer:
             # Phân tích sản phẩm nếu có thông tin
             if product_id in product_details:
                 product = product_details[product_id]
-                
                 # Categories với trọng số
-                if product.get("category"):
-                    category_scores[product["category"]] += weight
+                if product.get("category_id"):
+                    categories = product["category_id"]  # đã là list of ObjectId
+
+                    if isinstance(categories, list):
+                        for cat_id in categories:
+                            if cat_id:
+                                category_scores[str(cat_id)] += weight  
                 
                 # Brands với trọng số  
                 if product.get("brand"):
