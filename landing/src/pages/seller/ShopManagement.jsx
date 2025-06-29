@@ -66,7 +66,7 @@ const ShopManagement = () => {
 
             if (Array.isArray(dataUpdate.business_field)) {
                 dataUpdate.business_field.forEach(cat => {
-                    formData.append('business_field[]', cat.value); // ID
+                    formData.append('business_field[]', cat); // ID
                 });
             }
 
@@ -94,7 +94,7 @@ const ShopManagement = () => {
                     <div className="mb-6">
                         <div className="relative h-48 bg-gray-100 rounded-lg mb-4">
                             <img
-                                src={previewBanner}
+                                src={previewBanner || 'banner.jpg'}
                                 alt="Shop banner"
                                 className="w-full h-full object-cover rounded-lg"
                             />
@@ -110,7 +110,7 @@ const ShopManagement = () => {
                         </div>
                         <div className="relative w-32 h-32 mx-auto -mt-16 mb-4">
                             <img
-                                src={previewLogo}
+                                src={previewLogo || '/user.png'}
                                 alt="Shop logo"
                                 className="w-full h-full object-cover rounded-full border-4 border-white shadow"
                             />

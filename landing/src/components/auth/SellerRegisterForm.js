@@ -8,6 +8,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit })
     const [errors, setErrors] = useState({});
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isOTPLoading, setIsOTPLoading] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const categories = useSelector((state) => state.common.categories) || [];
     // Business categories options
@@ -128,7 +129,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit })
         }
 
         try {
-            setIsLoading(true);
+            setIsOTPLoading(true);
             await authService.customer_register_sent_otp(formData.email);
             setShowOtpInput(true);
             setErrors({ ...errors, email: '' });
@@ -137,7 +138,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit })
             setErrors({ ...errors, email: error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại' });
             showToast.error(error?.message || 'Không thể gửi mã OTP. Vui lòng thử lại');
         } finally {
-            setIsLoading(false);
+            setIsOTPLoading(false);
         }
     };
 
@@ -148,7 +149,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit })
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-6 text-center">
-                <h1 className="text-2xl font-bold text-gray-900">Đăng ký tài khoản người bán</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Đăng ký tài khoản bán hàng</h1>
                 <p className="mt-2 text-gray-600">Vui lòng điền đầy đủ thông tin để tạo tài khoản người bán</p>
             </div>
 
@@ -213,7 +214,7 @@ const SellerRegisterForm = ({ formData, onInputChange, onFileChange, onSubmit })
                                     disabled={isLoading}
                                     className="inline-flex items-center px-3 whitespace-nowrap py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700"
                                 >
-                                    {isLoading ? 'Đang gửi...' : 'Gửi OTP'}
+                                    {isOTPLoading ? 'Đang gửi...' : 'Gửi OTP'}
                                 </button>
                             </div>
                             {errors.email && (

@@ -43,7 +43,7 @@ const Register = () => {
         <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto w-full">
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    {role === 'seller' ? 'Đăng ký Tài khoản Người Bán' : 'Đăng ký Tài khoản Người Mua'}
+                    {role === 'seller' ? 'Đăng ký Tài khoản Bán Hàng' : 'Đăng ký Tài khoản Người Mua'}
                 </h2>
 
             </div>

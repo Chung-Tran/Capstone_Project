@@ -17,6 +17,5 @@ yarn-error.log*
 Thumbs.db
 
 # Environment files
-.env
 .env.local
 .env.production

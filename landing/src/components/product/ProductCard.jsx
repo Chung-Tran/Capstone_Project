@@ -112,21 +112,17 @@ const ProductCardItem = ({ product }) => {
 
                 {/* Status indicators */}
                 <div className="flex flex-col gap-1 mb-3 text-xs">
-                    {item.quantitySold > 0 && (
-                        <div className="flex items-center text-gray-600">
-                            <Award size={14} className="mr-1 text-purple-500" />
-                            <span>Đã bán {item.quantitySold}</span>
-                        </div>
-                    )}
-                    {item.isFreeShipping && (
-                        <div className="flex items-center text-gray-600">
-                            <Truck size={14} className="mr-1 text-green-500" />
-                            <span>Miễn phí vận chuyển</span>
-                        </div>
-                    )}
-                    <div className={`flex items-center ${item.stockStatus === 'Còn hàng' ? 'text-green-600' : 'text-red-500'}`}>
-                        <span className={`w-2 h-2 rounded-full mr-1 ${item.stockStatus === 'Còn hàng' ? 'bg-green-600' : 'bg-red-500'}`}></span>
-                        <span>{item.stockStatus}</span>
+                    <div className="flex items-center text-gray-600">
+                        <Award size={14} className="mr-1 text-purple-500" />
+                        <span>Đã bán {item.quantitySold || 0}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                        <Truck size={14} className="mr-1 text-green-500" />
+                        <span>Miễn phí vận chuyển</span>
+                    </div>
+                    <div className={`flex items-center ${item.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className={`w-2 h-2 rounded-full mr-1 ${item.stock > 0 ? 'bg-green-600' : 'bg-red-500'}`}></span>
+                        <span>Còn hàng</span>
                     </div>
                 </div>
 

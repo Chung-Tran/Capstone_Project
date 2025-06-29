@@ -119,7 +119,16 @@ const getProducts = asyncHandler(async (req, res) => {
     }
 
     if (keyword && !query.category_id) {
-        query.name = { $regex: keyword, $options: 'i' };
+        const matchedCategories = await Category.find({
+            name: { $regex: keyword, $options: 'i' }
+        }).select('_id');
+
+        const matchedCategoryIds = matchedCategories.map(cat => cat._id);
+
+        query.$or = [
+            { name: { $regex: keyword, $options: 'i' } },
+            { category_id: { $in: matchedCategoryIds } }
+        ];
     }
 
     if (slug) {

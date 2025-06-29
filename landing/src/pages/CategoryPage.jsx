@@ -3,7 +3,6 @@ import {
     Grid, List, ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import ProductCardItem from '../components/product/ProductCard';
-import ProductItemHorizontal from './SearchProductPage';
 import productService from '../services/product.service';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLoading } from '../utils/useLoading';
@@ -20,9 +19,7 @@ const CategoryPage = () => {
     const [viewMode, setViewMode] = useState('grid');
     const [sortOptionSelected, setSortOptionSelected] = useState('relevance');
     const [isSortOpen, setIsSortOpen] = useState(false);
-    const [relatedCategories, setRelatedCategories] = useState([]);
     const [featuredProducts, setFeaturedProducts] = useState([]);
-    const [recentlyViewed, setRecentlyViewed] = useState([]);
 
     const [pagination, setPagination] = useState({
         currentPage: 1,
@@ -37,36 +34,9 @@ const CategoryPage = () => {
             const response = await productService.get_category_by_id(cat_id);
             if (response?.data) {
                 setCategory(response.data);
-                // Find parent category to get related categories
-                if (response.data.parentId) {
-                    fetchRelatedCategories(response.data.parentId);
-                } else {
-                    // If this is a main category, find its subcategories
-                    fetchSubcategories(response.data.id);
-                }
             }
         } catch (error) {
             console.error('Error fetching category:', error);
-        }
-    };
-
-    // Fetch subcategories
-    const fetchSubcategories = async (parentId) => {
-        try {
-            const subcategories = categoriesFromRedux.filter(cat => cat.parentId === parentId);
-            setRelatedCategories(subcategories);
-        } catch (error) {
-            console.error('Error fetching subcategories:', error);
-        }
-    };
-
-    // Fetch related categories (siblings)
-    const fetchRelatedCategories = async (parentId) => {
-        try {
-            const siblings = categoriesFromRedux.filter(cat => cat.parentId === parentId);
-            setRelatedCategories(siblings);
-        } catch (error) {
-            console.error('Error fetching related categories:', error);
         }
     };
 
@@ -77,7 +47,7 @@ const CategoryPage = () => {
             const limit = pagination.itemsPerPage;
             const skip = (page - 1) * limit;
 
-            const params = { limit, skip, cat_id, sortOption: sortOptionSelected };
+            const params = { limit, skip, categories: cat_id, sortOption: sortOptionSelected };
 
             const response = await productService.product_search(params);
             if (response?.data) {
@@ -116,16 +86,6 @@ const CategoryPage = () => {
         }
     };
 
-    // Get recently viewed products from localStorage
-    const getRecentlyViewed = () => {
-        try {
-            const viewed = JSON.parse(localStorage.getItem('recentlyViewed')) || [];
-            setRecentlyViewed(viewed.slice(0, 4)); // Get only the first 4
-        } catch (error) {
-            console.error('Error fetching recently viewed products:', error);
-        }
-    };
-
     // Navigate to a category
     const goToCategory = (id) => {
         navigate(`/danh-muc/${id}`);
@@ -145,13 +105,12 @@ const CategoryPage = () => {
         fetchCategory();
         fetchProducts();
         fetchFeaturedProducts();
-        getRecentlyViewed();
     }, [cat_id]);
 
     useEffect(() => {
         fetchProducts();
     }, [sortOptionSelected]);
-    console.log(category, 'category');
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-6">
             {/* Category header with breadcrumbs */}
@@ -180,24 +139,29 @@ const CategoryPage = () => {
                         </div>
                         <div className="p-2">
                             <ul className="divide-y divide-gray-100">
-                                {categoriesFromRedux.map((cat) => {
-                                    const isActive = cat._id === cat_id;
+                                {categoriesFromRedux && categoriesFromRedux?.length > 0 &&
+                                    [...categoriesFromRedux] // clone mảng để tránh mutate prop gốc
+                                        .sort((a, b) => b.productCount - a.productCount)
+                                        .slice(0, 20)
+                                        .map((category, index) => {
+                                            const isActive = category._id === cat_id;
 
-                                    return (
-                                        <li key={cat._id}>
-                                            <button
-                                                onClick={() => goToCategory(cat._id)}
-                                                className={`w-full text-left px-3 py-2.5 text-sm rounded transition-colors
+                                            return (
+                                                <li key={category._id}>
+                                                    <button
+                                                        onClick={() => goToCategory(category._id)}
+                                                        className={`w-full text-left px-3 py-2.5 text-sm rounded transition-colors
                         ${isActive ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-blue-50'}`}
-                                            >
-                                                {cat.name}
-                                                {cat.productCount > 0 && (
-                                                    <span className="ml-1 text-xs text-gray-500">({cat.productCount})</span>
-                                                )}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
+                                                    >
+                                                        {category.name}
+                                                        {category.productCount > 0 && (
+                                                            <span className="ml-1 text-xs text-gray-500">({category.productCount})</span>
+                                                        )}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })
+                                }
                             </ul>
                         </div>
                     </div>

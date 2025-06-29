@@ -13,6 +13,7 @@ import { incrementCartCount, incrementWishlistCount } from '../store/slices/auth
 import { useRequireAuth } from '../hooks/useRequireAuth';
 import create_logger from '../config/logger';
 import { log_action_type } from '../common/Constant';
+import { Rating } from 'react-simple-star-rating';
 
 const ProductCard = ({ product }) => {
     const discount = product.discount || Math.floor(Math.random() * 30);
@@ -80,8 +81,16 @@ const ProductCard = ({ product }) => {
             <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm text-gray-600 ml-1">{product.average_rating || 0} <span className="text-gray-400">({product.total_reviews || 0} đánh giá)</span></span>
+
+                        <Rating
+                            initialValue={product.average_rating}
+                            size={20}
+                            allowFraction
+                            readonly
+                            SVGstyle={{ display: "inline-block" }}
+                            fillColor="#facc15"
+                            emptyColor="#e5e7eb"
+                        />
                     </div>
                     <span className="text-xs text-gray-500">{product.quantitySold || 0} đã bán</span>
                 </div>

@@ -23,7 +23,7 @@ router.post('/', async (req, res) => {
 
         /** 3. Ghi cid lên blockchain */
         const tx = await contract.addProductTrace(data.productId, cid);
-        const receipt = await tx.wait();     // đợi mined (có thể bắt timeout)
+        const receipt = await tx.wait();  
         product.isTraceVerified = true;
         product.traceHistories.push({
             cid,

@@ -4,6 +4,7 @@ const UserAction = require('../models/userAction.model');
 const Notification = require('../models/notification.model');
 const { log_action_type } = require('../common/Constant');
 const formatResponse = require('../middlewares/responseFormat');
+const startUpdateRecommendationCron = require('../cron/update-recommendation.cron');
 const LOG_API_URL = process.env.LOG_API_URL || 'http://160.250.133.57:8080/api'; // Cấu hình host Python
 // const LOG_API_URL = 'http://localhost:8080/api'; // Cấu hình host Python
 
@@ -105,22 +106,10 @@ const predictCategories = async (req, res) => {
 const updateRecommendationData = async (req, res) => {
     try {
         const user_id = req?.user_id || req?.body?.user_id;
-        if (!user_id) return;
-        const response = await axios.post(`${LOG_API_URL}/recommendation/batch-analyze`, {
-            user_id: user_id,
-            analysis_days: 20,
-        });
+        await startUpdateRecommendationCron()
 
-        if (response.status === 200) {
-            console.log("Update recommendation data for user" + user_id + "successfully")
-            return res.status(200).json(response.data);
-        } else {
-            console.error('❌ Python service trả về không hợp lệ:', response.data);
-            if (res)
-                res.status(500).json({ message: 'Invalid response from prediction service' });
-        }
     } catch (error) {
-        console.error('❌ Lỗi khi gọi predict event_categories:', error);
+        console.error('❌ Lỗi khi updateRecommendationData', error);
         if (res)
             res.status(500).json({ message: 'Internal server error' });
     }

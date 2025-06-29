@@ -291,6 +291,8 @@ const getOrdersOverTime = asyncHandler(async (req, res) => {
 // Lấy sản phẩm bán chạy nhất
 const getTopSellingProducts = asyncHandler(async (req, res) => {
     try {
+        const customerId = req.user._id;
+        const store = await Store.findOne({ owner_id: customerId });
         const { limit = 10, timeRange = '6months' } = req.query;
         const { startDate } = getDateRange(timeRange);
 
@@ -314,7 +316,7 @@ const getTopSellingProducts = asyncHandler(async (req, res) => {
                 $group: {
                     _id: '$product_id',
                     totalSold: { $sum: '$quantity' },
-                    revenue: { $sum: { $multiply: ['$quantity', '$price'] } }
+                    revenue: { $sum: { $multiply: ['$quantity', '$total_price'] } }
                 }
             },
             {
@@ -323,6 +325,11 @@ const getTopSellingProducts = asyncHandler(async (req, res) => {
                     localField: '_id',
                     foreignField: '_id',
                     as: 'product'
+                }
+            },
+            {
+                $match: {
+                    'product.store_id': store._id,
                 }
             },
             { $unwind: '$product' },

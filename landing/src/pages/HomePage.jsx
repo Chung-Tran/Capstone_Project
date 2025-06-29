@@ -256,7 +256,7 @@ function HomePage() {
                             <div className="w-1 h-8 bg-blue-600 rounded-full mr-3"></div>
                             <h2 className="text-3xl font-bold text-gray-800">Sản phẩm nổi bật</h2>
                         </div>
-                        <button className="text-blue-600 hover:text-blue-700 font-medium flex items-center group">
+                        <button className="text-blue-600 hover:text-blue-700 font-medium flex items-center group" onClick={() => navigate("/san-pham-moi")}>
                             Xem tất cả
                             <ChevronRight className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                         </button>

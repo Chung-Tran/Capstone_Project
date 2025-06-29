@@ -57,18 +57,20 @@ const getCustomerNotifications = asyncHandler(async (req, res) => {
 
 const getNotificationCreatedByAI = asyncHandler(async (req, res) => {
     const customer_id = req.user.id;
-    const store = await Store.find({
+    const store = await Store.findOne({
         owner_id: customer_id
-    })
+    }).lean();
     if (!store) {
         res.json(formatResponse(true, [], 'Store not exist'));
     }
     const notifications = await Notification.find({
-        store_id: store._id,
-        is_created_by_ai: true,
-        is_read: false
+        $or: [{
+            store_id: store._id,
+            is_created_by_ai: true,
+            is_read: false
+        }, { type: 'upcoming_events' }]
     })
-        .sort({ created_at: -1 });
+        .sort({ created_at: -1 }).lean();
 
     if (notifications) {
         res.json(formatResponse(true, notifications, 'Notifications retrieved successfully'));

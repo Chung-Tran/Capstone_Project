@@ -13,10 +13,10 @@ import { log_action_type, price_range_filter, sortOptions } from '../common/Cons
 import { useSelector } from 'react-redux';
 import create_logger from '../config/logger';
 
-const ProductItemHorizontal = (product) => {
+const ProductItemHorizontal = ({ product }) => {
     return (
         <div
-            key={product.id}
+            key={product._id}
             className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow"
         >
             <div className="flex p-4">
@@ -31,36 +31,36 @@ const ProductItemHorizontal = (product) => {
                             -{product.discount}%
                         </div>
                     )}
-                    {product.isAd && (
+                    {product.badge && (
                         <div className="absolute bottom-2 left-2 bg-gray-800 bg-opacity-70 text-white px-2 py-0.5 rounded text-xs">
-                            Quảng cáo
+                            {product.badge}
                         </div>
                     )}
                 </div>
 
-                <div className="ml-4 flex-grow">
+                <div className="ml-4 flex-grow flex flex-col">
                     <h3 className="text-lg font-medium text-gray-800 mb-2 hover:text-blue-600">
                         {product.name}
                     </h3>
 
                     <div className="flex items-center gap-4 mb-2">
                         <div className="flex items-center">
-                            <div className="flex">
-                                <Rating
-                                    initialValue={product.average_rating}
-                                    size={20}
-                                    allowFraction
-                                    readonly
-                                    SVGstyle={{ display: 'inline-block' }}
-                                    fillColor="#facc15"
-                                    emptyColor="#e5e7eb"
-                                />
+                            <Rating
+                                initialValue={product.average_rating}
+                                size={20}
+                                allowFraction
+                                readonly
+                                SVGstyle={{ display: 'inline-block' }}
+                                fillColor="#facc15"
+                                emptyColor="#e5e7eb"
+                            />
+                            <span className="ml-1 text-sm text-gray-600">({product.total_reviews || 0})</span>
+                        </div>
+                        {product.quantitySold > 0 && (
+                            <div className="text-sm text-gray-600">
+                                Đã bán {product.quantitySold}
                             </div>
-                            <span className="ml-1 text-sm text-gray-600">({product.total_reviews})</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                            <span>Đã bán {product.quantitySold}</span>
-                        </div>
+                        )}
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
@@ -75,36 +75,23 @@ const ProductItemHorizontal = (product) => {
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-3">
-                        {product.badges?.map((badge, idx) => (
-                            <span
-                                key={idx}
-                                className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded"
-                            >
-                                {badge}
+                        {product.badge && (
+                            <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded">
+                                {product.badge}
                             </span>
-                        ))}
-                        {product.freeShipping && (
+                        )}
+                        {product.isFreeShipping && (
                             <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">
                                 Freeship
-                            </span>
-                        )}
-                        {product.shopType === 'shopMall' && (
-                            <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
-                                Shop Mall
-                            </span>
-                        )}
-                        {product.shopType === 'official' && (
-                            <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1rounded">
-                                Chính hãng
                             </span>
                         )}
                     </div>
 
                     <p className="text-sm text-gray-600 mb-3">
-                        {product.stock === 0 ? (
-                            <span className="text-red-500">Hết hàng</span>
+                        {product.stockStatus === 'Còn hàng' ? (
+                            <span className="text-green-500">Còn hàng</span>
                         ) : (
-                            <span>Còn hàng - Giao hàng trong 24h</span>
+                            <span className="text-red-500">Hết hàng</span>
                         )}
                     </p>
 
@@ -112,15 +99,19 @@ const ProductItemHorizontal = (product) => {
                         <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
                             Thêm vào giỏ hàng
                         </button>
-                        <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">
+                        <a
+                            href={`/san-pham/${product._id}`}
+                            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm"
+                        >
                             Xem chi tiết
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     )
-}
+};
+
 const SearchProductPage = () => {
     const navigate = useNavigate();
     const { setLoading } = useLoading();
@@ -133,18 +124,7 @@ const SearchProductPage = () => {
     const [products, setProducts] = useState([]);
     let categoriesFromRedux = useSelector((state) => state.common.categories)
     const [categories, setCategories] = useState(categoriesFromRedux);
-    const sortedCategories = useMemo(() => {
-        if (categoriesFromRedux?.length > 0) {
-            return [...categoriesFromRedux]
-                .sort((a, b) => b.productCount - a.productCount)
-                .slice(0, 20);
-        }
-        return [];
-    }, [categoriesFromRedux]);
 
-    useEffect(() => {
-        setCategories(sortedCategories);
-    }, [sortedCategories]);
     // Separated filter states
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedRatings, setSelectedRatings] = useState([]);
@@ -155,9 +135,7 @@ const SearchProductPage = () => {
     const [tempSelectedRatings, setTempSelectedRatings] = useState([]);
     const [tempSelectedPriceRange, setTempSelectedPriceRange] = useState([]);
 
-    const [expandedCategories, setExpandedCategories] = useState({
-        ratings: false
-    });
+    const [expandedCategories, setExpandedCategories] = useState(true);
 
     const handleSearch = () => {
         if (searchQuery?.trim()) {
@@ -391,29 +369,41 @@ const SearchProductPage = () => {
 
                         {/* Categories filter */}
                         <div className="p-4 border-b border-gray-200">
-                            <h4 className="font-medium mb-3">Danh mục</h4>
+                            <div
+                                className="flex justify-between items-center cursor-pointer"
+                                onClick={() => setExpandedCategories(!expandedCategories)}
+                            >
+                                <h4 className="font-medium mb-3" onClick={() => setExpandedCategories(!expandedCategories)}>Danh mục</h4>
+                                {expandedCategories ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </div>
+
                             <div className="space-y-2">
-                                {categories?.length > 0 && categories.map(category => (
-                                    <div key={category._id} className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id={`cat-${category._id}`}
-                                            checked={tempSelectedCategories.includes(category._id)}
-                                            onChange={() => {
-                                                setTempSelectedCategories(prev =>
-                                                    prev.includes(category._id)
-                                                        ? prev.filter(item => item !== category._id)
-                                                        : [...prev, category._id]
-                                                );
-                                            }}
-                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <label htmlFor={`cat-${category._id}`} className="ml-2 text-sm text-gray-700 flex-grow">
-                                            {category.name}
-                                        </label>
-                                        <span className="text-xs text-gray-500">({category.productCount})</span>
-                                    </div>
-                                ))}
+                                {expandedCategories && categories?.length > 0 &&
+                                    [...categories] // clone mảng để tránh mutate prop gốc
+                                        .sort((a, b) => b.productCount - a.productCount)
+                                        .slice(0, 20)
+                                        .map((category, index) => (
+                                            <div key={category._id || index} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`cat-${category._id}`}
+                                                    checked={tempSelectedCategories.includes(category._id)}
+                                                    onChange={() => {
+                                                        setTempSelectedCategories(prev =>
+                                                            prev.includes(category._id)
+                                                                ? prev.filter(item => item !== category._id)
+                                                                : [...prev, category._id]
+                                                        );
+                                                    }}
+                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <label htmlFor={`cat-${category._id}`} className="ml-2 text-sm text-gray-700 flex-grow">
+                                                    {category.name}
+                                                </label>
+                                                <span className="text-xs text-gray-500">({category.productCount})</span>
+                                            </div>
+                                        ))
+                                }
                             </div>
                         </div>
 

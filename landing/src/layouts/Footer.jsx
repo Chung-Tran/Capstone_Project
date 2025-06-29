@@ -54,11 +54,11 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white text-lg font-medium mb-4 relative pb-2 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-10 after:bg-amber-600">Dịch vụ</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/customer-service" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Sản phẩm yêu thích</Link></li>
-                            <li><Link to="/track-order" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Giỏ hàng của tôi</Link></li>
-                            <li><Link to="/shipping" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Đơn hàng của tôi</Link></li>
-                            <li><Link to="/returns" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Chăm sóc khách hàng</Link></li>
-                            <li><Link to="/faq" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">FAQ</Link></li>
+                            <li><Link to="/san-pham-yeu-thich" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Sản phẩm yêu thích</Link></li>
+                            <li><Link to="/gio-hang" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Giỏ hàng của tôi</Link></li>
+                            <li><Link to="/tai-khoan/lich-su-don-hang" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Đơn hàng của tôi</Link></li>
+                            <li><Link to="#" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">Chăm sóc khách hàng</Link></li>
+                            <li><Link to="#" className="hover:text-amber-500 hover:translate-x-1 inline-block transition-all">FAQ</Link></li>
                         </ul>
                     </div>
 

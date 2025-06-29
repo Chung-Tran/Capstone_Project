@@ -315,10 +315,9 @@ const ProductDetailPage = () => {
                     return (
                       <div
                         key={colorValue}
-                        className={`px-4 py-2 border rounded-lg cursor-pointer text-sm ${index === 0
-                          ? "border-blue-600 bg-blue-50 text-blue-600"
-                          : "border-gray-300 hover:border-blue-300"
-                          }`}
+                        className={`px-4 py-2 border rounded-lg cursor-pointer text-sm 
+                          "border-gray-300 hover:border-blue-300"
+                          `}
                       >
                         {matchedOption?.label || colorValue}
                       </div>
@@ -361,7 +360,6 @@ const ProductDetailPage = () => {
             <div className="flex gap-4 mt-2">
               <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
                 onClick={() => moveItemToCart()}
-                disabled={product.stock <= 0 || product.stock < quantity}
               >
                 <ShoppingCart size={20} />
                 <span>Thêm vào giỏ</span>
@@ -422,22 +420,7 @@ const ProductDetailPage = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-1">
                 {store.store_name}
               </h3>
-              <div className="flex items-end gap-6 mb-2">
-                <div className="flex items-center">
-                  <Rating
-                    initialValue={store.average_rating}
-                    size={20}
-                    allowFraction
-                    readonly
-                    SVGstyle={{ display: "inline-block" }}
-                    fillColor="#facc15"
-                    emptyColor="#e5e7eb"
-                  />
-                  <span className="text-sm text-gray-600 top-[3px] relative ml-2">
-                    {store.average_rating || 0}
-                  </span>
-                </div>
-              </div>
+
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <Store size={16} className="text-gray-500" />
@@ -621,7 +604,7 @@ const ProductDetailPage = () => {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden">
                     <img
-                      src={review.customer_id.avatar}
+                      src={review.customer_id.avatar || '/user.png'}
                       alt={review.customer_id.fullName}
                       className="w-full h-full object-cover"
                     />

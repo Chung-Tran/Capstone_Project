@@ -12,6 +12,7 @@ import { incrementCartCount, incrementWishlistCount } from '../store/slices/auth
 import { useNavigate } from 'react-router-dom';
 import { typeStyles } from '../common/Constant';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import { Rating } from 'react-simple-star-rating';
 
 const ProductCard = ({ product, type = "default" }) => {
     const discount = product.discount || Math.floor(Math.random() * 30);
@@ -78,8 +79,20 @@ const ProductCard = ({ product, type = "default" }) => {
             <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm text-gray-600 ml-1">{product.average_rating || 0} <span className="text-gray-400">({product.total_reviews || 0} đánh giá)</span></span>
+                        <div className="flex items-center">
+
+                            <Rating
+                                initialValue={product.average_rating}
+                                size={20}
+                                allowFraction
+                                readonly
+                                SVGstyle={{ display: "inline-block" }}
+                                fillColor="#facc15"
+                                emptyColor="#e5e7eb"
+                            />
+                        </div>
+                        {/* <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                        <span className="text-sm text-gray-600 ml-1">{product.average_rating || 0} <span className="text-gray-400">({product.total_reviews || 0} đánh giá)</span></span> */}
                         {/* <span className="text-sm text-gray-600 ml-1">{ratings} <span className="text-gray-400">({Math.floor(Math.random() * 100) + 10})</span></span> */}
                     </div>
                     <span className="text-xs text-gray-500">{product.quantitySold || 0} đã bán</span>
@@ -122,7 +135,7 @@ function ForYouPage() {
                 setLoading(true);
                 const [resFeatured, resForyou] = await Promise.all([
                     productService.product_featured(10, 0),
-                    productService.product_for_you(10, 0, localStorage.getItem('customer_id'))
+                    productService.product_for_you(50, 0, localStorage.getItem('customer_id'))
                 ]);
 
                 if (!resFeatured.isSuccess || !resForyou.isSuccess) {
@@ -209,10 +222,6 @@ function ForYouPage() {
                                 <ThumbsUp className="ml-3 text-purple-600 h-6 w-6" />
                             </h2>
                         </div>
-                        <button className="text-purple-600 hover:text-purple-700 font-medium flex items-center group">
-                            Xem tất cả
-                            <ChevronRight className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
-                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">

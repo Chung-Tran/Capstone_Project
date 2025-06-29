@@ -43,16 +43,17 @@ const registerCustomer = asyncHandler(async (req, res) => {
 
     // Verify OTP
     const isOTPValid = await verifyOTP(email, otp, 'email');
-    console.log('OTP verification result:', isOTPValid, email, otp,);
     if (!isOTPValid) {
         res.status(400);
         throw new Error('OTP không hợp lệ hoặc hết hạn');
     }
 
-    const customerExists = await Customer.findOne({ email });
+    const customerExists = await Customer.findOne({
+        $or: [{ email }, { username }]
+    });
     if (customerExists) {
         res.status(400);
-        throw new Error('Email đã tồn tại');
+        throw new Error('Email và tên người dùng đã tồn tại');
     }
 
     const customerCount = await Customer.countDocuments();

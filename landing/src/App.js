@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import Layout from './layouts/Layout';
@@ -81,11 +81,19 @@ const MessengerWrapper = () => {
   const { messageId } = useParams();
   return <MessengerCustomer messageId={messageId} />;
 };
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
 
+  useEffect(() => {
+    // Scroll to top khi pathname thay đổi
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 const AppRoutes = () => {
   return (
     <Routes>
-
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -157,6 +165,8 @@ function App() {
       <AuthProvider>
         {/* <SocketProvider token={token}> */}
         <Router>
+          <ScrollToTop />
+
           <AppRoutes />
           <ToastContainer />
         </Router>
